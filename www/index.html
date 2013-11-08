@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=320, user-scalable=no">
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+		<title>Map Test App</title>
+		<link rel="stylesheet" href="plugin/leaflet/leaflet.css" />
+		<link rel="stylesheet" href="plugin/toolbar/toolbar.css" />
+		<!--[if lte IE 8]><link rel="stylesheet" href="plugin/leaflet/leaflet.ie.css" /><![endif]-->
+        <script type="text/javascript" src="phonegap.js"></script>
+	</head>
+	<body>
+		<div id="screen">
+			<div id="map" style="width: 600px; height: 400px"></div>
+			<script src="js/jq.js"></script>
+		
+			<script src="plugin/leaflet/leaflet.js"></script>
+		
+			<script src="plugin/routing/L.Routing.js"></script>
+			<script src="plugin/routing/L.Routing.Draw.js"></script>
+			<script src="plugin/routing/L.Routing.Edit.js"></script>
+			<script src="plugin/routing/L.Routing.Storage.js"></script>
+		
+			<script src="plugin/routing/utils/LineUtil.Snapping.js"></script>
+			<script src="plugin/routing/utils/Marker.Snapping.js"></script>
+			<script src="plugin/routing/utils/Polyline.Snapping.js"></script>
+		
+			<script src="plugin/toolbar/toolbar.js"></script>
+			<script>
+			$(document).ready(function(){
+				$("#map").width("100%");		
+				$("#map").height($(window).height() - 20);
+				var map = L.map('map').setView([36.36753, 59.49519], 12);
+				
+				var container = L.DomUtil.create('div', 'myToolBar leaflet-bar');
+				var link = L.DomUtil.create('a', '', container);
+				link.innerHTML = "HELLO";
+
+				
+				var toolbar = new L.Control.Toolbar();
+				map.addControl(toolbar);
+
+
+				
+				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
+				L.tileLayer('map_data/{z}/{x}/{y}.png', {
+					maxZoom: 12,
+					attribution: 'Arsheet Company'
+				}).addTo(map);
+
+
+				L.marker([36.36655, 59.49526]).addTo(map)
+					.bindPopup("<b>Arsheet Company</b><br />is Here!!").openPopup();
+
+				var popup = L.popup();
+
+				function onMapClick(e) {
+					popup
+						.setLatLng(e.latlng)
+						.setContent("You clicked the map at " + e.latlng.toString())
+						.openOn(map);
+				}
+
+				map.on('click', onMapClick);
+
+				myRouter = function(l1, l2, cb){
+					layer = {_lanlngs: [l1, l2]};
+					return cb(null);
+				}
+				
+				
+				/*myRouter = function(l1, l2, cb) {
+				  var req = $.getJSON(rUrl + [l1.lng, l1.lat, l2.lng, l2.lat].join(',') + '&callback=?');
+				  req.always(function(data, status) {
+					if (status === 'success') {
+					  try {
+						L.GeoJSON.geometryToLayer(JSON.parse(data)).eachLayer(function (layer) {
+						  // 14026
+						  var d1 = l1.distanceTo(layer._latlngs[0]);
+						  var d2 = l2.distanceTo(layer._latlngs[layer._latlngs.length-1]);
+						  
+						  if (d1 < 10 && d2 < 10) {
+							return cb(null, layer);
+						  } else {
+							return cb(new Error('This has been discarded'));
+						  }
+						});
+					  } catch(e) {
+						return cb(new Error('Invalid JSON'));
+					  }
+					} else {
+					  return cb(new Error('Routing failed'));
+					}
+				  });
+				}*/
+
+				snapping = new L.geoJson(null, {
+				  style: {
+					opacity:0
+					,clickable:false
+				  }
+				}).addTo(map);
+
+				
+				
+				var routing = new L.Routing({
+				  position: 'bottomleft'
+				  ,routing: {
+					router: myRouter
+				  }
+				  ,snapping: {
+					layers: [snapping]
+					,sensitivity: 15
+					,vertexonly: false
+				  }
+				});
+				map.addControl(routing);
+				//routing.draw(true);
+			});
+		
+			</script>
+			<!--a href="javascript:mosync.app.exit();">Exit</a-->
+		</div>
+	</body>
+</html>
