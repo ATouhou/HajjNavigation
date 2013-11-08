@@ -19,7 +19,7 @@
 			<div id="map" style="width: 600px; height: 400px"></div>
 			<script src="js/jq.js"></script>
 		
-			<script src="plugin/leaflet/leaflet.js"></script>
+			<script src="plugin/leaflet/leaflet-src.js"></script>
 		
 			<script src="plugin/routing/L.Routing.js"></script>
 			<script src="plugin/routing/L.Routing.Draw.js"></script>
@@ -62,7 +62,8 @@
 				
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
 				L.tileLayer('map_data/{z}/{x}/{y}.png', {
-					maxZoom: 15
+					maxZoom: 15,
+					attribution: 'Arsheet Company'
 				}).addTo(map);
 
 				var popup = L.popup();
