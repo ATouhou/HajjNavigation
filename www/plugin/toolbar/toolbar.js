@@ -13,7 +13,7 @@ L.Control.Toolbar = L.Control.extend({
 		this._btn_2 = this._createButton(
 		        'Button 2', 'Button 2', 'leaflet-control-toolbar', container, this._btn_2_click, this);
 		this._btn_exit = this._createButton(
-		        'Exit', 'Exit', 'leaflet-control-toolbar', container, this._btn_exit_click, this);
+		        'Button 3', 'Button 3', 'leaflet-control-toolbar', container, this._btn_exit_click, this);
 
 		return container;
 	},
@@ -27,7 +27,7 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_exit_click: function (e) {
-		navigator.app.exitApp();
+		alert("Button 3 clicked");
 	},
 
 	_createButton: function (html, title, className, container, fn, context) {
