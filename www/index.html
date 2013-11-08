@@ -47,7 +47,7 @@
 
 			$(document).ready(function(){
 				$("#map").width("100%");		
-				$("#map").height($(window).height() - 20);
+				$("#map").height($(window).height());
 				var map = L.map('map').setView([36.36753, 59.49519], 12);
 				
 				var container = L.DomUtil.create('div', 'myToolBar leaflet-bar');
@@ -62,8 +62,7 @@
 				
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
 				L.tileLayer('map_data/{z}/{x}/{y}.png', {
-					maxZoom: 15,
-					attribution: 'Arsheet Company'
+					maxZoom: 15
 				}).addTo(map);
 
 				var popup = L.popup();
