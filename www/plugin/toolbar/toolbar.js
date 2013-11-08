@@ -27,7 +27,7 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_exit_click: function (e) {
-		mosync.app.exit();
+		navigator.app.exitApp();
 	},
 
 	_createButton: function (html, title, className, container, fn, context) {
