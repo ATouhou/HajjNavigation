@@ -19,7 +19,7 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_1_click: function (e) {
-		alert("Button 1 clicked");
+		get_my_location();
 	},
 
 	_btn_2_click: function (e) {

@@ -32,6 +32,19 @@
 		
 			<script src="plugin/toolbar/toolbar.js"></script>
 			<script>
+			var my_location;
+			function get_my_location(){
+				navigator.geolocation.getCurrentPosition(function(position){
+					if(!my_location){
+						L.marker([position.latitude, position.longitude]).addTo(map)
+							.bindPopup("You are Here").openPopup();
+					}
+					my_location.setLatLng([position.latitude, position.longitude]).update();
+				}, function(error){
+					alert("Error retriving location");
+				});
+			}
+
 			$(document).ready(function(){
 				$("#map").width("100%");		
 				$("#map").height($(window).height() - 20);
@@ -52,10 +65,6 @@
 					maxZoom: 15,
 					attribution: 'Arsheet Company'
 				}).addTo(map);
-
-
-				L.marker([36.36655, 59.49526]).addTo(map)
-					.bindPopup("<b>Arsheet Company</b><br />is Here!!").openPopup();
 
 				var popup = L.popup();
 
