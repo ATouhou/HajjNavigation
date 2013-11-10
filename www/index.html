@@ -42,6 +42,11 @@
 					my_location.setLatLng([position.latitude, position.longitude]).update();
 				}, function(error){
 					alert("Error retriving location");
+				},
+				{
+					enableHighAccuracy : true,
+					maximumAge: 4000,
+					timeout: 5000
 				});
 			}
 
