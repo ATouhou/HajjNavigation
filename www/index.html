@@ -11,15 +11,19 @@
 		</style>
 		<link rel="stylesheet" href="plugin/leaflet/leaflet.css" />
 		<link rel="stylesheet" href="plugin/toolbar/toolbar.css" />
+		<link rel="stylesheet" href="css/dd.css" />
 		<!--[if lte IE 8]><link rel="stylesheet" href="plugin/leaflet/leaflet.ie.css" /><![endif]-->
+		<script src="js/jq.js"></script>
+        <script type="text/javascript" src="js/jquery.dd.js"></script>
         <script type="text/javascript" src="phonegap.js"></script>
 	</head>
 	<body>
 		<div id="screen">
 			<div id="map" style="width: 600px; height: 400px"></div>
-			<script src="js/jq.js"></script>
 		
 			<script src="plugin/leaflet/leaflet-src.js"></script>
+			<script src="plugin/leaflet/bouncemarker.js"></script>
+			<script type="text/javascript" src="js/markers.js"></script>
 		
 			<script src="plugin/routing/L.Routing.js"></script>
 			<script src="plugin/routing/L.Routing.Draw.js"></script>
@@ -33,6 +37,11 @@
 			<script src="plugin/toolbar/toolbar.js"></script>
 			<script>
 			var my_location;
+			
+			var state = "NONE";
+	
+			lst_poi = [];
+	
 			function get_my_location(){
 				navigator.geolocation.getCurrentPosition(function(position){
 					if(!my_location){
@@ -49,7 +58,7 @@
 					timeout: 5000
 				});
 			}
-
+			
 			$(document).ready(function(){
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
@@ -63,25 +72,62 @@
 				var toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
 
-
-				
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
 				L.tileLayer('map_data/{z}/{x}/{y}.png', {
 					maxZoom: 15,
 					attribution: 'Arsheet Company'
 				}).addTo(map);
 
-				var popup = L.popup();
+				//var popup = L.popup();
+				/*options = {};
+				options.icon = test_marker;
+				options.draggable = true;
+				options.bounceOnAdd = true;
+				options.bounceOnAddOptions = {duration: 500, height: 50};
 
-				/*function onMapClick(e) {
-					popup
+				L.marker([36.36655, 59.49526], options).addTo(map);
+				*/
+				/*L.marker([36.36655, 59.49526], create_poi_marker('bank')).addTo(map)
+					.bindPopup("Hello");*/
+				
+				function onMapClick(e) {
+					/*popup
 						.setLatLng(e.latlng)
 						.setContent("You clicked the map at " + e.latlng.toString())
 						.openOn(map);
+						*/
+					if(state == "ADD_POI"){
+						/*L.marker(e.latlng).addTo(map)
+							.bindPopup("You clicked Here").openPopup();*/
+						
+						var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
+						
+						var select = "<select style='width: 250px;'>";
+						for (var i = 0; i < elems.length; i++)
+							select += "<option value='" + elems[i] + "' data-description='' data-title='" + elems[i] + "' data-image='images/poi/" + elems[i] + ".png'>" + elems[i] + "</option>";
+						select += "</select>";
+						
+						var popup = "<table><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text /></td></tr><tr><td><strong>Text:</strong></td><td><textarea></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Save\" /></td></table>";
+						
+						marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map)
+							.bindPopup(popup);
+						console.log(marker.id);
+						setTimeout(function(){marker.openPopup();}, 1000);
+						
+						//map.fire('popupopen', {popup: this});
+
+						//$(".leaflet-popup-content select").msDropDown();
+						
+							//console.log($("body select"));
+							//$(".leaflet-popup-content select").msDropDown();
+						state = "NONE";
+					}
 				}
 
-				map.on('click', onMapClick);*/
+				map.on('click', onMapClick);
 
+				map.on('popupopen', function(){$(".leaflet-popup-content select").msDropDown({height: 100});});
+				
 				myRouter = function(l1, l2, cb){
 					layer = {_lanlngs: [l1, l2]};
 					return cb(null);

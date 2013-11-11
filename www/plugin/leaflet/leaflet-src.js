@@ -4045,6 +4045,7 @@ L.Map.include({
 		popup._isOpen = true;
 
 		this._popup = popup;
+
 		return this.addLayer(popup);
 	},
 
@@ -4072,6 +4073,7 @@ L.Marker.include({
 			this._popup.setLatLng(this._latlng);
 			this._map.openPopup(this._popup);
 		}
+		//this._map.fire('popupopen', {popup: this});
 
 		return this;
 	},
