@@ -23,7 +23,7 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_2_click: function (e) {
-		alert("Button 2 clicked");
+		state = "ADD_POI";
 	},
 
 	_btn_exit_click: function (e) {
