@@ -42,7 +42,7 @@
 			});
 			
 			
-			var my_location;
+			var my_location = null;
 			
 			var state = "NONE";
 	
@@ -50,7 +50,7 @@
 	
 			function get_my_location(){
 				navigator.geolocation.getCurrentPosition(function(position){
-					if(!my_location){
+					if(my_location == null){
 						L.marker([position.latitude, position.longitude]).addTo(map)
 							.bindPopup("You are Here").openPopup();
 					}
