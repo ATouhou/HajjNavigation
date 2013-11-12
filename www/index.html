@@ -36,11 +36,17 @@
 		
 			<script src="plugin/toolbar/toolbar.js"></script>
 			<script>
+			$(window).resize(function(){
+				$("#map").width("100%");		
+				$("#map").height($(window).height());
+			});
+			
+			
 			var my_location;
 			
 			var state = "NONE";
 	
-			lst_poi = [];
+			lst_poi = {};
 	
 			function get_my_location(){
 				navigator.geolocation.getCurrentPosition(function(position){
@@ -57,6 +63,12 @@
 					maximumAge: 4000,
 					timeout: 5000
 				});
+			}
+			
+			function change_poi_type(id, select){
+				var new_value = select.value;
+				//lst_poi[id].options.icon.options.iconUrl = "images/poi/" + new_value + ".png";
+				lst_poi[id].setIcon(create_poi_marker(new_value).icon);
 			}
 			
 			$(document).ready(function(){
@@ -100,18 +112,21 @@
 						/*L.marker(e.latlng).addTo(map)
 							.bindPopup("You clicked Here").openPopup();*/
 						
+						marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map);
+						lst_poi[marker.id] = marker;
+
 						var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
-						
-						var select = "<select style='width: 250px;'>";
+					
+						var select = "<select style='width: 180px;' onchange=\"change_poi_type(" + marker.id + ", this)\">";
 						for (var i = 0; i < elems.length; i++)
-							select += "<option value='" + elems[i] + "' data-description='' data-title='" + elems[i] + "' data-image='images/poi/" + elems[i] + ".png'>" + elems[i] + "</option>";
+							select += "<option value='" + elems[i] + "' data-description='' data-image='images/poi/" + elems[i] + ".png'>" + elems[i] + "</option>";
 						select += "</select>";
 						
-						var popup = "<table><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text /></td></tr><tr><td><strong>Text:</strong></td><td><textarea></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Save\" /></td></table>";
+						var popup = "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text /></td></tr><tr><td>Text:</td><td><textarea></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" /></td></table>";
 						
-						marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map)
-							.bindPopup(popup);
-						console.log(marker.id);
+						marker.bindPopup(popup);
+						
+						//console.log(marker.id);
 						setTimeout(function(){marker.openPopup();}, 1000);
 						
 						//map.fire('popupopen', {popup: this});
@@ -126,7 +141,12 @@
 
 				map.on('click', onMapClick);
 
-				map.on('popupopen', function(){$(".leaflet-popup-content select").msDropDown({height: 100});});
+				map.on('popupopen', function(e) {
+					$(".leaflet-popup-content select option").filter(function(){ 
+						return $(this).val() == e.popup._source.options.icon.options.iconType;
+					}).prop("selected", true); 
+					$(".leaflet-popup-content select").msDropDown({height: 100});
+				});
 				
 				myRouter = function(l1, l2, cb){
 					layer = {_lanlngs: [l1, l2]};
