@@ -73,6 +73,23 @@
 				lst_poi[id].setIcon(create_poi_marker(new_value).icon);
 			}
 			
+			function get_nearest_node(lat, lon){
+				var min_id = -1;
+				var min_dist = 999;
+				$.each(json, function(id, nodes){
+					var d = (nodes.lat - lat)*(nodes.lat - lat) + (nodes.lon - lon)*(nodes.lon - lon);
+					if(min_id == -1 || d < min_dist){
+						min_id = id;
+						min_dist = d;
+					}
+				});
+				//alert(min_id);
+				return min_id;
+				//L.marker([json[min_id].lat, json[min_id].lon]).addTo(map);
+			}
+
+			var routing_points = [];
+			
 			$(document).ready(function(){
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
@@ -110,6 +127,23 @@
 						.setContent("You clicked the map at " + e.latlng.toString())
 						.openOn(map);
 						*/
+					
+					if(routing_points.length < 2){
+						var node_id = get_nearest_node(e.latlng.lat, e.latlng.lng);
+						L.marker([json[node_id].lat, json[node_id].lon]).addTo(map);
+						routing_points.push(node_id);
+						
+						if(routing_points.length == 2){
+							var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
+							var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
+						
+							var res = do_search(p1, p2);
+							L.polyline(res, {color: 'blue'}).addTo(map);
+						}
+					}
+					
+					
+					
 					if(state == "ADD_POI"){
 						/*L.marker(e.latlng).addTo(map)
 							.bindPopup("You clicked Here").openPopup();*/
@@ -211,8 +245,6 @@
 				//var route = [[36.3304063, 59.5217872], [36.3308283, 59.5204895], [36.3309377, 59.5201292], [36.3309841, 59.5199768], [36.3310966, 59.5200361], [36.3310471, 59.5201910], [36.3310116, 59.5203023], [36.3309070, 59.5206296], [36.3304703, 59.5219870], [36.3299409, 59.5236330], [36.3294142, 59.5252702], [36.3300678, 59.5254470], [36.3306919, 59.5256169], [36.3313079, 59.5257849], [36.3319119, 59.5259496]];
 				//L.polyline(route, {color: 'blue'}).addTo(map);
 				
-				var res = do_search({id: 269147896, lat: 36.3325303, lon: 59.5261181}, {id: 263266579, lat: 36.3304063, lon: 59.5217872});
-				L.polyline(res, {color: 'blue'}).addTo(map);
 			});
 		
 			</script>

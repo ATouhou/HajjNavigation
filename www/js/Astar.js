@@ -6,7 +6,7 @@ var parent = {};
 var path = [];
 
 function f(state){
-  var h = (goal.lat - state.lat)*(goal.lat - state.lat) + (goal.lon - state.lon)*(goal.lon - state.lon);
+  var h = Math.sqrt((goal.lat - state.lat)*(goal.lat - state.lat) + (goal.lon - state.lon)*(goal.lon - state.lon));
   //var h = goal.lat - state.lat + goal.lon - state.lon;
   var g = state.g;
   return(g + h);
