@@ -15,6 +15,8 @@
 		<!--[if lte IE 8]><link rel="stylesheet" href="plugin/leaflet/leaflet.ie.css" /><![endif]-->
 		<script src="js/jq.js"></script>
         <script type="text/javascript" src="js/jquery.dd.js"></script>
+        <script type="text/javascript" src="js/Astar.js"></script>
+        <script type="text/javascript" src="js/init_db.js"></script>
         <script type="text/javascript" src="phonegap.js"></script>
 	</head>
 	<body>
@@ -86,7 +88,7 @@
 
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
 				L.tileLayer('map_data/{z}/{x}/{y}.png', {
-					maxZoom: 15,
+					maxZoom: 16,
 					attribution: 'Arsheet Company'
 				}).addTo(map);
 
@@ -148,13 +150,13 @@
 					$(".leaflet-popup-content select").msDropDown({height: 100});
 				});
 				
-				myRouter = function(l1, l2, cb){
+				/*myRouter = function(l1, l2, cb){
 					layer = {_lanlngs: [l1, l2]};
 					return cb(null);
 				}
 				
 				
-				/*myRouter = function(l1, l2, cb) {
+				myRouter = function(l1, l2, cb) {
 				  var req = $.getJSON(rUrl + [l1.lng, l1.lat, l2.lng, l2.lat].join(',') + '&callback=?');
 				  req.always(function(data, status) {
 					if (status === 'success') {
@@ -177,7 +179,7 @@
 					  return cb(new Error('Routing failed'));
 					}
 				  });
-				}*/
+				}
 
 				snapping = new L.geoJson(null, {
 				  style: {
@@ -200,7 +202,17 @@
 				  }
 				});
 				map.addControl(routing);
-				//routing.draw(true);
+				routing.draw(true);*/
+
+
+				
+				//L.marker([36.3325303, 59.5261181]).addTo(map);
+				//L.marker([36.3304063, 59.5217872]).addTo(map);
+				//var route = [[36.3304063, 59.5217872], [36.3308283, 59.5204895], [36.3309377, 59.5201292], [36.3309841, 59.5199768], [36.3310966, 59.5200361], [36.3310471, 59.5201910], [36.3310116, 59.5203023], [36.3309070, 59.5206296], [36.3304703, 59.5219870], [36.3299409, 59.5236330], [36.3294142, 59.5252702], [36.3300678, 59.5254470], [36.3306919, 59.5256169], [36.3313079, 59.5257849], [36.3319119, 59.5259496]];
+				//L.polyline(route, {color: 'blue'}).addTo(map);
+				
+				var res = do_search({id: 269147896, lat: 36.3325303, lon: 59.5261181}, {id: 263266579, lat: 36.3304063, lon: 59.5217872});
+				L.polyline(res, {color: 'blue'}).addTo(map);
 			});
 		
 			</script>
