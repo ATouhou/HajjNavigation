@@ -142,7 +142,9 @@
 			}
 
 			var routing_points = [];
+			var routing_markers = [];
 			var map, toolbar;
+			var route;
 			$(document).ready(function(){
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
@@ -183,7 +185,7 @@
 					if(state == "ROUTING"){
 						if(routing_points.length < 2){
 							var node_id = get_nearest_node(e.latlng.lat, e.latlng.lng);
-							L.marker([json[node_id].lat, json[node_id].lon]).addTo(map);
+							routing_markers.push(L.marker([json[node_id].lat, json[node_id].lon]).addTo(map));
 							routing_points.push(node_id);
 							
 							if(routing_points.length == 2){
@@ -191,10 +193,10 @@
 								var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
 							
 								var res = do_search(p1, p2);
-								L.polyline(res, {color: 'blue'}).addTo(map);
+								route = L.polyline(res, {color: 'blue'}).addTo(map);
+								change_state("NONE");
 							}
 						}
-						change_state("NONE");
 					}
 					
 					

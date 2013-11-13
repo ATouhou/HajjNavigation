@@ -27,6 +27,15 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_3_click: function (e) {
+		if(route){
+			map.removeLayer(route);
+			route = null;
+			for(var i = 0; i < routing_markers.length; i++){
+				map.removeLayer(routing_markers[i]);
+			}
+			routing_markers = [];
+			routing_points = [];
+		}
 		change_state("ROUTING", "Tap on the map for source and dest");
 	},
 
