@@ -11,9 +11,9 @@ L.Control.Toolbar = L.Control.extend({
 		this._btn_1  = this._createButton(
 		        'My Location', 'My Location',  'leaflet-control-toolbar',  container, this._btn_1_click,  this);
 		this._btn_2 = this._createButton(
-		        'POI', 'Button 2', 'leaflet-control-toolbar', container, this._btn_2_click, this);
+		        'Add POI', 'Add POI', 'leaflet-control-toolbar', container, this._btn_2_click, this);
 		this._btn_exit = this._createButton(
-		        'Button 3', 'Button 3', 'leaflet-control-toolbar', container, this._btn_exit_click, this);
+		        'Routing', 'Routing', 'leaflet-control-toolbar', container, this._btn_3_click, this);
 
 		return container;
 	},
@@ -23,12 +23,11 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_2_click: function (e) {
-		state = "ADD_POI";
-		alert("Click on the map to add a POI");
+		change_state("ADD_POI", "Click on the map ");
 	},
 
-	_btn_exit_click: function (e) {
-		alert("Button 3 clicked");
+	_btn_3_click: function (e) {
+		change_state("ROUTING", "Tap on the map for source and dest");
 	},
 
 	_createButton: function (html, title, className, container, fn, context) {

@@ -43,13 +43,19 @@
 				$("#map").height($(window).height());
 			});
 			
+			var info;
+			var db = window.openDatabase("Database", "1.0", "HajjNavigation", 2000000);
 			
 			var my_location = null;
-			
 			var state = "NONE";
-	
 			lst_poi = {};
 	
+			function change_state(i_state, i_desc){
+				i_desc = typeof i_desc !== 'undefined' ? i_desc : "Arsheet Company";
+				state = i_state;
+				$(".leaflet-control-attribution").html(i_desc);
+			}
+
 			function get_my_location(){
 				navigator.geolocation.getCurrentPosition(function(position){
 					if(my_location == null){
@@ -67,12 +73,61 @@
 				});
 			}
 			
+			function save_title(id, elem){
+				db.transaction(function(tx){
+					tx.executeSql("UPDATE POI SET [title]=? WHERE [id]=?", [$(elem).val(), id]);
+				});
+				lst_poi[id].options.icon.options.title = $(elem).val();
+			}
+
+			function save_text(id, elem){
+				db.transaction(function(tx){
+					tx.executeSql("UPDATE POI SET [text]=? WHERE [id]=?", [$(elem).val(), id]);
+				});
+				lst_poi[id].options.icon.options.text = $(elem).val();
+			}
+
+			function delete_poi(id){
+				if(confirm("Are you sure you want to remove this POI?")){
+					db.transaction(function(tx){
+						tx.executeSql("DELETE FROM POI WHERE [id]=?", [id]);
+					});
+					map.removeLayer(lst_poi[id]);
+					lst_poi[id] = undefined;
+				}
+			}
+			
+			function gen_poi_popup(poi_id){
+				var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
+				var select = "<select style='width: 180px;' onchange=\"change_poi_type(" + poi_id + ", this)\">";
+				for (var j = 0; j < elems.length; j++)
+					select += "<option value='" + elems[j] + "' data-description='' data-image='images/poi/" + elems[j] + ".png'>" + elems[j] + "</option>";
+				select += "</select>";
+				return "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text onblur='save_title("+poi_id+", this);' /></td></tr><tr><td>Text:</td><td><textarea onblur='save_text("+poi_id+",this);'></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" onclick='delete_poi("+poi_id+")' /></td></table>";
+			}
+			
+			function init_pois(){
+				db.transaction(function(tx){
+					tx.executeSql("SELECT [id], [lat], [lon], [type], [title], [text] FROM POI", [], function(tx, result){
+						var len = result.rows.length;
+						for(var i = 0; i < len; i++){
+							var poi_id = result.rows.item(i).id;
+							var popup = gen_poi_popup(poi_id);
+							lst_poi[poi_id] = L.marker([result.rows.item(i).lat, result.rows.item(i).lon], create_poi_marker(result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text)).addTo(map).bindPopup(popup);
+						}
+					});
+				});
+			}
+			
 			function change_poi_type(id, select){
 				var new_value = select.value;
 				//lst_poi[id].options.icon.options.iconUrl = "images/poi/" + new_value + ".png";
 				lst_poi[id].setIcon(create_poi_marker(new_value).icon);
+				db.transaction(function(tx){
+					tx.executeSql("UPDATE POI SET type=? WHERE id=?", [new_value, id]);
+				});
 			}
-			
+
 			function get_nearest_node(lat, lon){
 				var min_id = -1;
 				var min_dist = 999;
@@ -83,32 +138,31 @@
 						min_dist = d;
 					}
 				});
-				//alert(min_id);
 				return min_id;
-				//L.marker([json[min_id].lat, json[min_id].lon]).addTo(map);
 			}
 
 			var routing_points = [];
-			
+			var map, toolbar;
 			$(document).ready(function(){
+				db.transaction(function(tx){
+					//tx.executeSql("DROP TABLE POI");
+					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300))");
+				});
+			
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
-				var map = L.map('map').setView([36.36753, 59.49519], 12);
+				map = L.map('map').setView([21.4236, 39.8269], 12);
 				
-				var container = L.DomUtil.create('div', 'myToolBar leaflet-bar');
-				var link = L.DomUtil.create('a', '', container);
-				link.innerHTML = "HELLO";
-
-				
-				var toolbar = new L.Control.Toolbar();
+				toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
 
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
-				L.tileLayer('map_data/{z}/{x}/{y}.png', {
+				info = L.tileLayer('map_data/{z}/{x}/{y}.png', {
 					maxZoom: 16,
 					attribution: 'Arsheet Company'
 				}).addTo(map);
 
+				init_pois();
 				//var popup = L.popup();
 				/*options = {};
 				options.icon = test_marker;
@@ -118,8 +172,6 @@
 
 				L.marker([36.36655, 59.49526], options).addTo(map);
 				*/
-				/*L.marker([36.36655, 59.49526], create_poi_marker('bank')).addTo(map)
-					.bindPopup("Hello");*/
 				
 				function onMapClick(e) {
 					/*popup
@@ -128,50 +180,50 @@
 						.openOn(map);
 						*/
 					
-					if(routing_points.length < 2){
-						var node_id = get_nearest_node(e.latlng.lat, e.latlng.lng);
-						L.marker([json[node_id].lat, json[node_id].lon]).addTo(map);
-						routing_points.push(node_id);
-						
-						if(routing_points.length == 2){
-							var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
-							var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
-						
-							var res = do_search(p1, p2);
-							L.polyline(res, {color: 'blue'}).addTo(map);
+					if(state == "ROUTING"){
+						if(routing_points.length < 2){
+							var node_id = get_nearest_node(e.latlng.lat, e.latlng.lng);
+							L.marker([json[node_id].lat, json[node_id].lon]).addTo(map);
+							routing_points.push(node_id);
+							
+							if(routing_points.length == 2){
+								var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
+								var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
+							
+								var res = do_search(p1, p2);
+								L.polyline(res, {color: 'blue'}).addTo(map);
+							}
 						}
+						change_state("NONE");
 					}
 					
 					
 					
 					if(state == "ADD_POI"){
-						/*L.marker(e.latlng).addTo(map)
-							.bindPopup("You clicked Here").openPopup();*/
-						
 						marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map);
-						lst_poi[marker.id] = marker;
-
-						var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
-					
-						var select = "<select style='width: 180px;' onchange=\"change_poi_type(" + marker.id + ", this)\">";
-						for (var i = 0; i < elems.length; i++)
-							select += "<option value='" + elems[i] + "' data-description='' data-image='images/poi/" + elems[i] + ".png'>" + elems[i] + "</option>";
-						select += "</select>";
+						//lst_poi[marker.id] = marker;
 						
-						var popup = "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text /></td></tr><tr><td>Text:</td><td><textarea></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" /></td></table>";
+						db.transaction(function(tx){
+							tx.executeSql("INSERT INTO POI ([lat], [lon], [type], [title], [text]) VALUES (?, ?, ?, ?, ?)", [e.latlng.lat.toString(), e.latlng.lng.toString(), 'Accommodation', '', ''], function(tx, result){
+								var marker_id = result.insertId;
+								lst_poi[marker_id] = marker;
 						
-						marker.bindPopup(popup);
+								/*var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
+							
+								var select = "<select style='width: 180px;' onchange=\"change_poi_type(" + marker_id + ", this)\">";
+								for (var i = 0; i < elems.length; i++)
+									select += "<option value='" + elems[i] + "' data-description='' data-image='images/poi/" + elems[i] + ".png'>" + elems[i] + "</option>";
+								select += "</select>";
+								
+								var popup = "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text /></td></tr><tr><td>Text:</td><td><textarea></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" /></td></table>";
+								*/
+								var popup = gen_poi_popup(marker_id);
+								marker.bindPopup(popup);
+								setTimeout(function(){marker.openPopup();}, 1000);
+							});
+						});
 						
-						//console.log(marker.id);
-						setTimeout(function(){marker.openPopup();}, 1000);
-						
-						//map.fire('popupopen', {popup: this});
-
-						//$(".leaflet-popup-content select").msDropDown();
-						
-							//console.log($("body select"));
-							//$(".leaflet-popup-content select").msDropDown();
-						state = "NONE";
+						change_state("NONE");
 					}
 				}
 
@@ -182,68 +234,11 @@
 						return $(this).val() == e.popup._source.options.icon.options.iconType;
 					}).prop("selected", true); 
 					$(".leaflet-popup-content select").msDropDown({height: 100});
+					
+					$(".leaflet-popup-content input[type=text]").val(e.popup._source.options.icon.options.title);
+					$(".leaflet-popup-content textarea").val(e.popup._source.options.icon.options.text);
+					
 				});
-				
-				/*myRouter = function(l1, l2, cb){
-					layer = {_lanlngs: [l1, l2]};
-					return cb(null);
-				}
-				
-				
-				myRouter = function(l1, l2, cb) {
-				  var req = $.getJSON(rUrl + [l1.lng, l1.lat, l2.lng, l2.lat].join(',') + '&callback=?');
-				  req.always(function(data, status) {
-					if (status === 'success') {
-					  try {
-						L.GeoJSON.geometryToLayer(JSON.parse(data)).eachLayer(function (layer) {
-						  // 14026
-						  var d1 = l1.distanceTo(layer._latlngs[0]);
-						  var d2 = l2.distanceTo(layer._latlngs[layer._latlngs.length-1]);
-						  
-						  if (d1 < 10 && d2 < 10) {
-							return cb(null, layer);
-						  } else {
-							return cb(new Error('This has been discarded'));
-						  }
-						});
-					  } catch(e) {
-						return cb(new Error('Invalid JSON'));
-					  }
-					} else {
-					  return cb(new Error('Routing failed'));
-					}
-				  });
-				}
-
-				snapping = new L.geoJson(null, {
-				  style: {
-					opacity:0
-					,clickable:false
-				  }
-				}).addTo(map);
-
-				
-				
-				var routing = new L.Routing({
-				  position: 'bottomleft'
-				  ,routing: {
-					router: myRouter
-				  }
-				  ,snapping: {
-					layers: [snapping]
-					,sensitivity: 15
-					,vertexonly: false
-				  }
-				});
-				map.addControl(routing);
-				routing.draw(true);*/
-
-
-				
-				//L.marker([36.3325303, 59.5261181]).addTo(map);
-				//L.marker([36.3304063, 59.5217872]).addTo(map);
-				//var route = [[36.3304063, 59.5217872], [36.3308283, 59.5204895], [36.3309377, 59.5201292], [36.3309841, 59.5199768], [36.3310966, 59.5200361], [36.3310471, 59.5201910], [36.3310116, 59.5203023], [36.3309070, 59.5206296], [36.3304703, 59.5219870], [36.3299409, 59.5236330], [36.3294142, 59.5252702], [36.3300678, 59.5254470], [36.3306919, 59.5256169], [36.3313079, 59.5257849], [36.3319119, 59.5259496]];
-				//L.polyline(route, {color: 'blue'}).addTo(map);
 				
 			});
 		
