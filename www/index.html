@@ -37,6 +37,9 @@
 			<script src="plugin/routing/utils/Polyline.Snapping.js"></script>
 		
 			<script src="plugin/toolbar/toolbar.js"></script>
+
+			<script type="text/javascript" charset="utf-8" src="plugin/pg-plugin-screen-orientation.js"></script>
+			
 			<script>
 			$(window).resize(function(){
 				$("#map").width("100%");		
@@ -73,20 +76,6 @@
 				});
 			}
 			
-			function save_title(id, elem){
-				db.transaction(function(tx){
-					tx.executeSql("UPDATE POI SET [title]=? WHERE [id]=?", [$(elem).val(), id]);
-				});
-				lst_poi[id].options.icon.options.title = $(elem).val();
-			}
-
-			function save_text(id, elem){
-				db.transaction(function(tx){
-					tx.executeSql("UPDATE POI SET [text]=? WHERE [id]=?", [$(elem).val(), id]);
-				});
-				lst_poi[id].options.icon.options.text = $(elem).val();
-			}
-
 			function delete_poi(id){
 				if(confirm("Are you sure you want to remove this POI?")){
 					db.transaction(function(tx){
@@ -97,13 +86,17 @@
 				}
 			}
 			
-			function gen_poi_popup(poi_id){
+			/*function gen_poi_popup(poi_id){
 				var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
 				var select = "<select style='width: 180px;' onchange=\"change_poi_type(" + poi_id + ", this)\">";
 				for (var j = 0; j < elems.length; j++)
 					select += "<option value='" + elems[j] + "' data-description='' data-image='images/poi/" + elems[j] + ".png'>" + elems[j] + "</option>";
 				select += "</select>";
 				return "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text onblur='save_title("+poi_id+", this);' /></td></tr><tr><td>Text:</td><td><textarea onblur='save_text("+poi_id+",this);'></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" onclick='delete_poi("+poi_id+")' /></td></table>";
+			}*/
+			
+			function gen_poi_popup(id, type, title, text){
+				return "<table style='width: 250px;'><tr><td style='width: 150px; vertical-align: top;'><img style='margin-bottom: -12px; margin-right: 5px; width: 25px;' src='images/poi/" + type + ".png' />" + type + "<br /><br /><b>" + title + "</b><br />" + text + "</td><td style='background: #EEE; color: #AAA; text-align: center' rowspan=2>Image</td></tr><tr><td style='vertical-align: bottom;'><table style='width: 100%; height: 30px; font-size: 10px'><tr><td style='width: 50%'><input style='width: 100%; height: 100%; font-size: 8px' type='button' onclick='open_poi_edit(" + id + ")' value='Edit' /></td><td style='width: 50%;'><input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' /></td></tr></table></td></tr></table>";
 			}
 			
 			function init_pois(){
@@ -112,22 +105,16 @@
 						var len = result.rows.length;
 						for(var i = 0; i < len; i++){
 							var poi_id = result.rows.item(i).id;
-							var popup = gen_poi_popup(poi_id);
+							var popup = gen_poi_popup(poi_id, result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text);
 							lst_poi[poi_id] = L.marker([result.rows.item(i).lat, result.rows.item(i).lon], create_poi_marker(result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text)).addTo(map).bindPopup(popup);
+							/*lst_poi[poi_id].on('click', function(e){
+								console.log(e.target.id);
+							});*/
 						}
 					});
 				});
 			}
 			
-			function change_poi_type(id, select){
-				var new_value = select.value;
-				//lst_poi[id].options.icon.options.iconUrl = "images/poi/" + new_value + ".png";
-				lst_poi[id].setIcon(create_poi_marker(new_value).icon);
-				db.transaction(function(tx){
-					tx.executeSql("UPDATE POI SET type=? WHERE id=?", [new_value, id]);
-				});
-			}
-
 			function get_nearest_node(lat, lon){
 				var min_id = -1;
 				var min_dist = 999;
@@ -141,6 +128,69 @@
 				return min_id;
 			}
 
+			var dd_select_by_value = function(id, value) {
+			  var children = $('#' + id + '_child ul	').children();
+			  for(var i=0;i<children.length;i++) {
+				var label = children[i].getElementsByTagName('span')[0].innerHTML;
+				if(label === value) {
+				  $("#" + id).msDropDown().data('dd').set('selectedIndex', i);
+				}
+			  }
+			};
+
+
+			function open_poi_edit(id){
+				db.transaction(function(tx){
+					tx.executeSql("SELECT [id], [type], [title], [text] FROM POI WHERE id=?",[id],function(tx, result){
+						if(result.rows.length > 0){
+							var s_id    = result.rows.item(0).id;
+							var s_type  = result.rows.item(0).type;
+							var s_title = result.rows.item(0).title;
+							var s_text  = result.rows.item(0).text;
+							
+							$("#poi_window #id").val(s_id);
+							dd_select_by_value("poi_type", s_type);
+							$("#poi_window #poi_name").val(s_title);
+							$("#poi_window #poi_desc").val(s_text);
+							navigator.screenOrientation.set('landscape');
+							$("#poi_window").fadeIn('fast');
+							lst_poi[s_id].closePopup();
+						}
+					});
+				});
+			}
+
+			function save_poi(){
+				var id   = $("#poi_window #id").val();
+				var type = $("#poi_window #poi_type").val();
+				var name = $("#poi_window #poi_name").val();
+				var desc = $("#poi_window #poi_desc").val();
+				db.transaction(function(tx){
+					tx.executeSql("UPDATE POI SET [type]=?, [title]=?, [text]=? WHERE [id]=?", [type, name, desc, id]);
+				});
+				lst_poi[id].bindPopup(gen_poi_popup(id, type, name, desc));
+			}
+			
+			function add_new_poi(lat, lon){
+				$("#poi_window #lat").val(lat);
+				$("#poi_window #lon").val(lon);
+				navigator.screenOrientation.set('landscape');
+				$("#poi_window").fadeIn('fast');
+			}
+			
+			function close_poi_edit(){
+				$("#poi_window #lat").val('');
+				$("#poi_window #lon").val('');
+				$("#poi_window").fadeOut('fast');
+				
+				navigator.screenOrientation.set('fullSensor');
+
+				var id   = $("#poi_window #id").val();
+				if(id != "")
+					lst_poi[id].openPopup();
+
+			}
+			
 			var routing_points = [];
 			var routing_markers = [];
 			var map, toolbar;
@@ -160,7 +210,7 @@
 
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
 				info = L.tileLayer('map_data/{z}/{x}/{y}.png', {
-					maxZoom: 16,
+					maxZoom: 18,
 					attribution: 'Arsheet Company'
 				}).addTo(map);
 
@@ -231,7 +281,9 @@
 
 				map.on('click', onMapClick);
 
-				map.on('popupopen', function(e) {
+				$(".msDropDown").msDropDown({height: 100});
+				
+				/*map.on('popupopen', function(e) {
 					$(".leaflet-popup-content select option").filter(function(){ 
 						return $(this).val() == e.popup._source.options.icon.options.iconType;
 					}).prop("selected", true); 
@@ -240,12 +292,75 @@
 					$(".leaflet-popup-content input[type=text]").val(e.popup._source.options.icon.options.title);
 					$(".leaflet-popup-content textarea").val(e.popup._source.options.icon.options.text);
 					
-				});
+				});*/
 				
 			});
 		
 			</script>
-			<!--a href="javascript:mosync.app.exit();">Exit</a-->
+			<div id="poi_window" style='position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; background-color: white; z-index: 1001; display: none;'>
+			<input type="hidden" id="id" />
+			<input type="hidden" id="lat" />
+			<input type="hidden" id="lon" />
+			<table style="width: 100%; height: 100%;">
+				<tr>
+					<td style="width: 50%; vertical-align: top;">
+						<table style="width: 100%;">
+							<tr>
+								<td style="width: 100px;">Type</td>
+								<td style="padding: 5px">
+									<select id="poi_type" class='msDropDown' style='width: 100%;'>
+										<option value='Accommodation'  data-description='' data-image='images/poi/Accommodation.png'>Accommodation</option>
+										<option value='ATM'            data-description='' data-image='images/poi/ATM.png'>ATM</option>
+										<option value='Bank'           data-description='' data-image='images/poi/Bank.png'>Bank</option>
+										<option value='Car Aid'        data-description='' data-image='images/poi/Car Aid.png'>Car Aid</option>
+										<option value='Education'      data-description='' data-image='images/poi/Education.png'>Education</option>
+										<option value='Emergency'      data-description='' data-image='images/poi/Emergency.png'>Emergency</option>
+										<option value='Entertainment'  data-description='' data-image='images/poi/Entertainment.png'>Entertainment</option>
+										<option value='Exchange'       data-description='' data-image='images/poi/Exchange.png'>Exchange</option>
+										<option value='Food Shop'      data-description='' data-image='images/poi/Food Shop.png'>Food Shop</option>
+										<option value='Fuel'           data-description='' data-image='images/poi/Fuel.png'>Fuel</option>
+										<option value='Geocache'       data-description='' data-image='images/poi/Geocache.png'>Geocache</option>
+										<option value='Haram Entrance' data-description='' data-image='images/poi/Haram Entrance.png'>Haram Entrance</option>
+										<option value='Health'         data-description='' data-image='images/poi/Health.png'>Health</option>
+										<option value='Hospital'       data-description='' data-image='images/poi/Hospital.png'>Hospital</option>
+										<option value='Money'          data-description='' data-image='images/poi/Money.png'>Money</option>
+										<option value='Parking'        data-description='' data-image='images/poi/Parking.png'>Parking</option>
+										<option value='Resturant'      data-description='' data-image='images/poi/Resturant.png'>Resturant</option>
+										<option value='Sightseeing'    data-description='' data-image='images/poi/Sightseeing.png'>Sightseeing</option>
+										<option value='Transport'      data-description='' data-image='images/poi/Transport.png'>Transport</option>
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<td>Name</td>
+								<td style="padding: 5px"><input id="poi_name" type="text" style="width: 100%" /></td>
+							</tr>
+							<tr>
+								<td>Description</td>
+								<td style="padding: 5px"><textarea id="poi_desc" rows=4 style="width: 100%; resize: none"></textarea></td>
+							</tr>
+						</table>
+					</td>
+					<td rowspan=2 style="width: 50%; background-color: #EEE; text-align: center; color: #AAA; padding: 10px; background-size: cover">
+						Tap to change image
+					</td>
+				</tr>
+				<tr>
+					<td style="vertical-align: bottom; text-align: center">
+						<table style="width: 100%; height: 50px;">
+							<tr>
+								<td style="width: 50%">
+									<input type="button" value="OK" style="width: 100%; height: 100%" onclick="save_poi(); close_poi_edit();" />
+								</td>
+								<td style="width: 50%">
+									<input type="button" value="Cancel" style="width: 100%; height: 100%" onclick="close_poi_edit();" />
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			</div>
 		</div>
 	</body>
 </html>
