@@ -38,8 +38,6 @@
 		
 			<script src="plugin/toolbar/toolbar.js"></script>
 
-			<script type="text/javascript" charset="utf-8" src="plugin/pg-plugin-screen-orientation.js"></script>
-			
 			<script>
 			$(window).resize(function(){
 				$("#map").width("100%");		
@@ -152,7 +150,7 @@
 							dd_select_by_value("poi_type", s_type);
 							$("#poi_window #poi_name").val(s_title);
 							$("#poi_window #poi_desc").val(s_text);
-							navigator.screenOrientation.set('landscape');
+
 							$("#poi_window").fadeIn('fast');
 							lst_poi[s_id].closePopup();
 						}
@@ -174,7 +172,7 @@
 			function add_new_poi(lat, lon){
 				$("#poi_window #lat").val(lat);
 				$("#poi_window #lon").val(lon);
-				navigator.screenOrientation.set('landscape');
+
 				$("#poi_window").fadeIn('fast');
 			}
 			
@@ -183,8 +181,8 @@
 				$("#poi_window #lon").val('');
 				$("#poi_window").fadeOut('fast');
 				
-				navigator.screenOrientation.set('fullSensor');
 
+				
 				var id   = $("#poi_window #id").val();
 				if(id != "")
 					lst_poi[id].openPopup();
@@ -195,6 +193,7 @@
 			var routing_markers = [];
 			var map, toolbar;
 			var route;
+
 			$(document).ready(function(){
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
@@ -307,6 +306,8 @@
 						<table style="width: 100%;">
 							<tr>
 								<td style="width: 100px;">Type</td>
+							</tr>
+							<tr>
 								<td style="padding: 5px">
 									<select id="poi_type" class='msDropDown' style='width: 100%;'>
 										<option value='Accommodation'  data-description='' data-image='images/poi/Accommodation.png'>Accommodation</option>
@@ -333,10 +334,14 @@
 							</tr>
 							<tr>
 								<td>Name</td>
+							</tr>
+							<tr>
 								<td style="padding: 5px"><input id="poi_name" type="text" style="width: 100%" /></td>
 							</tr>
 							<tr>
 								<td>Description</td>
+							</tr>
+							<tr>
 								<td style="padding: 5px"><textarea id="poi_desc" rows=4 style="width: 100%; resize: none"></textarea></td>
 							</tr>
 						</table>
