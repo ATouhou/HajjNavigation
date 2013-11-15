@@ -52,17 +52,21 @@
 			var state = "NONE";
 			lst_poi = {};
 	
+			function change_desc(i_desc){
+				$(".leaflet-control-attribution").html(i_desc);
+			}
+	
 			function change_state(i_state, i_desc){
 				i_desc = typeof i_desc !== 'undefined' ? i_desc : "Arsheet Company";
 				state = i_state;
-				$(".leaflet-control-attribution").html(i_desc);
+				change_desc(i_desc);
 			}
-
+			
 			function get_my_location(){
 				if(my_location_watcher == null){
 					my_location_watcher = window.setInterval(function(){
 						navigator.geolocation.getCurrentPosition(function(position){
-							change_state("NONE", "Position is: " + position.coords.latitude + ", " + position.coords.longitude);
+							change_desc("Position is: " + position.coords.latitude + ", " + position.coords.longitude);
 
 							if(my_location == null){
 								var options = {};
@@ -79,7 +83,7 @@
 								my_location.update();
 							}
 						}, function(error){
-							change_state("NONE");
+							change_desc("Arsheet Company");
 							//alert("Error retriving location");
 						},
 						{
@@ -137,6 +141,7 @@
 			}*/
 			
 			function route_to_here(id){
+				console.log(id);
 				var s_lat = my_location._latlng.lat;
 				var s_lon = my_location._latlng.lng;
 				var s_id = get_nearest_node(s_lat, s_lon);
@@ -242,7 +247,7 @@
 						tx.executeSql("INSERT INTO POI ([lat], [lon], [type], [title], [text], [image]) VALUES (?, ?, ?, ?, ?, ?)", [latlng.lat.toString(), latlng.lng.toString(), type, name, desc, file_url], function(tx, result){
 							var marker_id = result.insertId;
 							lst_poi[marker_id] = new_marker;
-							lst_poi[marker_id].bindPopup(gen_poi_popup(id, type, name, desc, file_url));
+							lst_poi[marker_id].bindPopup(gen_poi_popup(marker_id, type, name, desc, file_url));
 						});
 					}
 					else{
@@ -257,6 +262,13 @@
 				$("#poi_window #lat").val(lat);
 				$("#poi_window #lon").val(lon);
 
+				$("#poi_window #id").val('');
+				dd_select_by_value("poi_type", 'Accommodation');
+				$("#poi_window #poi_name").val('');
+				$("#poi_window #poi_desc").val('');
+				$("#poi_window #POI_img_edit").css('background-image', '');
+
+				
 				$("#poi_window").fadeIn('fast');
 			}
 			
@@ -264,8 +276,6 @@
 				$("#poi_window #lat").val('');
 				$("#poi_window #lon").val('');
 				$("#poi_window").fadeOut('fast');
-				
-
 				
 				var id   = $("#poi_window #id").val();
 				if(id != "")
