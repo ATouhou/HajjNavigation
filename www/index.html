@@ -48,6 +48,7 @@
 			var db = window.openDatabase("Database", "1.0", "HajjNavigation", 2000000);
 			
 			var my_location = null;
+			var my_location_watcher = null;
 			var state = "NONE";
 			lst_poi = {};
 	
@@ -58,20 +59,62 @@
 			}
 
 			function get_my_location(){
-				navigator.geolocation.getCurrentPosition(function(position){
+				if(my_location_watcher == null){
+					my_location_watcher = window.setInterval(function(){
+						navigator.geolocation.getCurrentPosition(function(position){
+							change_state("NONE", "Position is: " + position.coords.latitude + ", " + position.coords.longitude);
+
+							if(my_location == null){
+								var options = {};
+								options.icon = L.icon({
+									iconUrl: 'images/cur_pos.png',
+									iconSize:     [16, 16], // size of the icon
+									iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
+								});
+								my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
+								my_location.fire('move', { latlng: my_location._latlng });
+							}else{
+								my_location._latlng.lat = 0.1 * my_location._latlng.lat + 0.9 * p.coords.latitude;
+								my_location._latlng.lng = 0.1 * my_location._latlng.lng + 0.9 * p.coords.longitude;
+								my_location.update();
+							}
+						}, function(error){
+							change_state("NONE");
+							//alert("Error retriving location");
+						},
+						{
+							enableHighAccuracy : true,
+							maximumAge: 4000,
+							timeout: 5000
+						});
+					}, 1000);
+				}
+				else{
+					clearInterval(my_location_watcher);
+					my_location_watcher = null;
+				}
+				/*var suc = function(p) {
 					if(my_location == null){
-						L.marker([position.latitude, position.longitude]).addTo(map)
-							.bindPopup("You are Here").openPopup();
+						my_location = L.marker([p.coords.latitude, p.coords.logitude]).addTo(map).update();
 					}
-					my_location.setLatLng([position.latitude, position.longitude]).update();
-				}, function(error){
-					alert("Error retriving location");
-				},
-				{
-					enableHighAccuracy : true,
-					maximumAge: 4000,
-					timeout: 5000
-				});
+					else{
+						my_location._latlng.lat = 0.1 * my_location._latlng.lat + 0.9 * p.coords.latitude;
+						my_location._latlng.lng = 0.1 * my_location._latlng.lng + 0.9 * p.coords.longitude;
+						my_location.update();
+					}
+				};
+				var locFail = function() {
+					change_state("NONE");
+				};
+				if(my_location_watcher == null)
+					my_location_watcher = navigator.geolocation.watchPosition(suc, locFail, {frequency:30000, enableHighAccuracy: true});
+				else{
+					navigator.getlocation.clearWatch(my_location_watcher);
+					my_location_watcher = null;
+					change_state("NONE");
+				}*/
+				
+				
 			}
 			
 			function delete_poi(id){
@@ -93,18 +136,40 @@
 				return "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text onblur='save_title("+poi_id+", this);' /></td></tr><tr><td>Text:</td><td><textarea onblur='save_text("+poi_id+",this);'></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" onclick='delete_poi("+poi_id+")' /></td></table>";
 			}*/
 			
-			function gen_poi_popup(id, type, title, text){
-				return "<table style='width: 250px;'><tr><td style='width: 150px; vertical-align: top;'><img style='margin-top: -5px; margin-right: 5px; width: 25px;' src='images/poi/" + type + ".png' />" + type + "<br /><br /><b>" + title + "</b><br />" + text + "</td><td style='background: #EEE; color: #AAA; text-align: center' rowspan=2>Image</td></tr><tr><td style='vertical-align: bottom;'><table style='width: 100%; height: 30px; font-size: 10px'><tr><td style='width: 50%'><input style='width: 100%; height: 100%; font-size: 8px' type='button' onclick='open_poi_edit(" + id + ")' value='Edit' /></td><td style='width: 50%;'><input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' /></td></tr></table></td></tr></table>";
+			function route_to_here(id){
+				var s_lat = my_location._latlng.lat;
+				var s_lon = my_location._latlng.lng;
+				var s_id = get_nearest_node(s_lat, s_lon);
+
+				var d_lat = lst_poi[id]._latlng.lat;
+				var d_lon = lst_poi[id]._latlng.lng;
+				var d_id = get_nearest_node(d_lat, d_lon);
+
+				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
+				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
+			
+				var res = do_search(p1, p2);
+				route = L.polyline(res, {color: 'blue'}).addTo(map);
+			}
+
+			function gen_poi_popup(id, type, title, text, image_url){
+				var image_val = "Image";
+				var image_back = "";
+				if(image_url != ""){
+					image_back = "background-image: " + image_url;
+					image_val = "";
+				}
+				return "<table style='width: 250px;'><tr><td style='width: 150px; vertical-align: top;'><img style='margin-top: -5px; margin-right: 5px; width: 25px;' src='images/poi/" + type + ".png' />" + type + "<br /><br /><b>" + title + "</b><br />" + text + "</td><td style='background-color: #EEE; color: #AAA; text-align: center; background-repeat: no-repeat; background-size: contain; background-position: center center; "+image_back+"' rowspan=2>"+image_val+"</td></tr><tr><td style='vertical-align: bottom;'><table style='width: 100%; height: 30px; font-size: 10px'><tr><td style='width: 50%'><input style='width: 100%; height: 100%; font-size: 8px' type='button' onclick='open_poi_edit(" + id + ")' value='Edit' /></td><td style='width: 50%;'><input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_here(" + id + ")' /></td></tr></table></td></tr></table>";
 			}
 			
 			function init_pois(){
 				db.transaction(function(tx){
-					tx.executeSql("SELECT [id], [lat], [lon], [type], [title], [text] FROM POI", [], function(tx, result){
+					tx.executeSql("SELECT [id], [lat], [lon], [type], [title], [text], [image] FROM POI", [], function(tx, result){
 						var len = result.rows.length;
 						for(var i = 0; i < len; i++){
 							var poi_id = result.rows.item(i).id;
-							var popup = gen_poi_popup(poi_id, result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text);
-							lst_poi[poi_id] = L.marker([result.rows.item(i).lat, result.rows.item(i).lon], create_poi_marker(result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text)).addTo(map).bindPopup(popup);
+							var popup = gen_poi_popup(poi_id, result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text, result.rows.item(i).image);
+							lst_poi[poi_id] = L.marker([result.rows.item(i).lat, result.rows.item(i).lon], create_poi_marker(result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text, result.rows.item(i).image)).addTo(map).bindPopup(popup);
 							/*lst_poi[poi_id].on('click', function(e){
 								console.log(e.target.id);
 							});*/
@@ -139,17 +204,19 @@
 
 			function open_poi_edit(id){
 				db.transaction(function(tx){
-					tx.executeSql("SELECT [id], [type], [title], [text] FROM POI WHERE id=?",[id],function(tx, result){
+					tx.executeSql("SELECT [id], [type], [title], [text], [image] FROM POI WHERE id=?",[id],function(tx, result){
 						if(result.rows.length > 0){
 							var s_id    = result.rows.item(0).id;
 							var s_type  = result.rows.item(0).type;
 							var s_title = result.rows.item(0).title;
 							var s_text  = result.rows.item(0).text;
+							var s_image = result.rows.item(0).image;
 							
 							$("#poi_window #id").val(s_id);
 							dd_select_by_value("poi_type", s_type);
 							$("#poi_window #poi_name").val(s_title);
 							$("#poi_window #poi_desc").val(s_text);
+							$("#poi_window #POI_img_edit").css('background-image', s_image);
 
 							$("#poi_window").fadeIn('fast');
 							lst_poi[s_id].closePopup();
@@ -160,26 +227,30 @@
 
 			function save_poi(){
 				var id   = $("#poi_window #id").val();
+				var lat  = $("#poi_window #lat").val();
+				var lon  = $("#poi_window #lon").val();
 				var type = $("#poi_window #poi_type").val();
 				var name = $("#poi_window #poi_name").val();
 				var desc = $("#poi_window #poi_desc").val();
-				
-				var img_data = $('#POI_img_edit').css('background-image');
-				if(img_data !== null && img-data !== undefined){
-					window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fs){
-						var path = 'images/poi_images/' + id;
-						fs.root.getFile(path, {create: true}, function(entry){
-							entry.createWriter(function(writer){
-								writer.write(img_data);
-							});
-						});
-					});
-				}
+
+				var file_url = $("#poi_window #POI_img_edit").css('background-image');
 								
 				db.transaction(function(tx){
-					tx.executeSql("UPDATE POI SET [type]=?, [title]=?, [text]=? WHERE [id]=?", [type, name, desc, id]);
+					if(id == ''){
+						var latlng = new L.LatLng(lat, lon);
+						var new_marker = L.marker(latlng, create_poi_marker(type)).addTo(map);
+						tx.executeSql("INSERT INTO POI ([lat], [lon], [type], [title], [text], [image]) VALUES (?, ?, ?, ?, ?, ?)", [latlng.lat.toString(), latlng.lng.toString(), type, name, desc, file_url], function(tx, result){
+							var marker_id = result.insertId;
+							lst_poi[marker_id] = new_marker;
+							lst_poi[marker_id].bindPopup(gen_poi_popup(id, type, name, desc, file_url));
+						});
+					}
+					else{
+						tx.executeSql("UPDATE POI SET [type]=?, [title]=?, [text]=?, [image]=? WHERE [id]=?", [type, name, desc, file_url, id]);
+						lst_poi[id].setIcon(create_poi_marker(type).icon);
+						lst_poi[id].bindPopup(gen_poi_popup(id, type, name, desc, file_url));
+					}
 				});
-				lst_poi[id].bindPopup(gen_poi_popup(id, type, name, desc));
 			}
 			
 			function add_new_poi(lat, lon){
@@ -210,7 +281,7 @@
 			$(document).ready(function(){
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
-					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300))");
+					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300), [image] text)");
 				});
 			
 				$("#map").width("100%");		
@@ -264,7 +335,7 @@
 					
 					
 					if(state == "ADD_POI"){
-						marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map);
+						/*marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map);
 						//lst_poi[marker.id] = marker;
 						
 						db.transaction(function(tx){
@@ -272,20 +343,12 @@
 								var marker_id = result.insertId;
 								lst_poi[marker_id] = marker;
 						
-								/*var elems = ['Accommodation', 'ATM', 'Bank', 'Car Aid', 'Education', 'Emergency', 'Entertainment', 'Exchange', 'Food Shop', 'Fuel', 'Geocache', 'Haram Entrance', 'Health', 'Hospital', 'Money', 'Parking', 'Resturant', 'Sightseeing', 'Transport'];
-							
-								var select = "<select style='width: 180px;' onchange=\"change_poi_type(" + marker_id + ", this)\">";
-								for (var i = 0; i < elems.length; i++)
-									select += "<option value='" + elems[i] + "' data-description='' data-image='images/poi/" + elems[i] + ".png'>" + elems[i] + "</option>";
-								select += "</select>";
-								
-								var popup = "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text /></td></tr><tr><td>Text:</td><td><textarea></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" /></td></table>";
-								*/
 								var popup = gen_poi_popup(marker_id);
 								marker.bindPopup(popup);
 								setTimeout(function(){marker.openPopup();}, 1000);
 							});
-						});
+						});*/
+						add_new_poi(e.latlng.lat, e.latlng.lng);
 						
 						change_state("NONE");
 					}
@@ -308,22 +371,23 @@
 				
 				$("#POI_img_edit").click(function(){
 					/*var popover = new CameraPopoverOptions(300, 300, 100, 100, Camera.PopoverArrowDirection.ARROW_ANY);*/
-					alert("1");
 					var options = {
-						quality: 50,
-						destinationType : Camera.DestinationType.DATA_URL,
+						quality         : 70,
+						targetWidth     : 200,
+						targetHeight    : 200,
 						sourceType      : Camera.PictureSourceType.SAVEDPHOTOALBUM,
-						mediaType       : PICTURE/*,
+						destinationType : Camera.DestinationType.DATA_URL,
+						encodingType    : Camera.EncodingType.JPEG
+						/*quality: 50,
+						
+						mediaType       : PICTURE*//*,
 						popoverOptions  : popover*/
 					};
-					alert("2");
 					navigator.camera.getPicture(function(imgData){
-						alert("2.5");
-						$("#POI_img_edit").css('background-image', 'data:image/jpeg;base64,' + imgData);
+						$("#POI_img_edit").css('background-image', 'url(data:image/jpeg;base64,' + imgData + ')');
 					}, function(error){
 						alert('Failed: ' + error);
 					}, options);
-					alert("3");
 				});
 			});
 
@@ -379,13 +443,13 @@
 							</tr>
 						</table>
 					</td>
-					<td id="POI_img_edit" rowspan=2 style="width: 50%; background-color: #EEE; text-align: center; color: #AAA; padding: 10px; background-size: cover">
+					<td id="POI_img_edit" rowspan=2 style="width: 50%; background-color: #EEE; text-align: center; color: #AAA; padding: 10px; background-size: contain; background-repeat: no-repeat; background-position: center center;">
 						Tap to change image
 					</td>
 				</tr>
 				<tr>
 					<td style="vertical-align: bottom; text-align: center">
-						<table style="width: 100%; height: 50px;">
+						<table style="width: 100%; height: 40px;">
 							<tr>
 								<td style="width: 50%">
 									<input type="button" value="OK" style="width: 100%; height: 100%" onclick="save_poi(); close_poi_edit();" />
