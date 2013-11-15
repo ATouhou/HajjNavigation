@@ -163,6 +163,19 @@
 				var type = $("#poi_window #poi_type").val();
 				var name = $("#poi_window #poi_name").val();
 				var desc = $("#poi_window #poi_desc").val();
+				
+				var img_data = $('#POI_img_edit').css('background-image');
+				if(img_data !== null && img-data !== undefined){
+					window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fs){
+						var path = 'images/poi_images/' + id;
+						fs.root.getFile(path, {create: true}, function(entry){
+							entry.createWriter(function(writer){
+								writer.write(img_data);
+							});
+						});
+					});
+				}
+								
 				db.transaction(function(tx){
 					tx.executeSql("UPDATE POI SET [type]=?, [title]=?, [text]=? WHERE [id]=?", [type, name, desc, id]);
 				});
@@ -293,8 +306,28 @@
 					
 				});*/
 				
+				$("#POI_img_edit").click(function(){
+					/*var popover = new CameraPopoverOptions(300, 300, 100, 100, Camera.PopoverArrowDirection.ARROW_ANY);*/
+					alert("1");
+					var options = {
+						quality: 50,
+						destinationType : Camera.DestinationType.DATA_URL,
+						sourceType      : Camera.PictureSourceType.SAVEDPHOTOALBUM,
+						mediaType       : PICTURE/*,
+						popoverOptions  : popover*/
+					};
+					alert("2");
+					navigator.camera.getPicture(function(imgData){
+						alert("2.5");
+						$("#POI_img_edit").css('background-image', 'data:image/jpeg;base64,' + imgData);
+					}, function(error){
+						alert('Failed: ' + error);
+					}, options);
+					alert("3");
+				});
 			});
-		
+
+			
 			</script>
 			<div id="poi_window" style='position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; background-color: white; z-index: 1001; display: none;'>
 			<input type="hidden" id="id" />
@@ -346,7 +379,7 @@
 							</tr>
 						</table>
 					</td>
-					<td rowspan=2 style="width: 50%; background-color: #EEE; text-align: center; color: #AAA; padding: 10px; background-size: cover">
+					<td id="POI_img_edit" rowspan=2 style="width: 50%; background-color: #EEE; text-align: center; color: #AAA; padding: 10px; background-size: cover">
 						Tap to change image
 					</td>
 				</tr>
