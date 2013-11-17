@@ -1157,7 +1157,7 @@ L.LatLng.prototype = {
 	},
 
 	toString: function (precision) { // (Number) -> String
-		return 'LatLng(' +
+		return '(' +
 		        L.Util.formatNum(this.lat, precision) + ', ' +
 		        L.Util.formatNum(this.lng, precision) + ')';
 	},

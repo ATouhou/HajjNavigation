@@ -14,6 +14,7 @@
 		<link rel="stylesheet" href="css/dd.css" />
 		<!--[if lte IE 8]><link rel="stylesheet" href="plugin/leaflet/leaflet.ie.css" /><![endif]-->
 		<script src="js/jq.js"></script>
+        <script type="text/javascript" src="js/jquery.tapandhold.js"></script>
         <script type="text/javascript" src="js/jquery.dd.js"></script>
         <script type="text/javascript" src="js/Astar.js"></script>
         <script type="text/javascript" src="js/init_db.js"></script>
@@ -49,7 +50,8 @@
 			var info;
 			var db = window.openDatabase("Database", "1.0", "HajjNavigation", 2000000);
 			
-			var my_location = null;
+			var my_location = L.marker([36.3113,59.5716]);
+						
 			var my_location_watcher = null;
 			var state = "NONE";
 			lst_poi = {};
@@ -123,14 +125,39 @@
 				return "<table cellspacing=0 cellpadding=0><tr><td>Type:</td><td>" + select + "</td></tr><tr><td>Title:</td><td><input type=text onblur='save_title("+poi_id+", this);' /></td></tr><tr><td>Text:</td><td><textarea onblur='save_text("+poi_id+",this);'></textarea></td></tr><tr><td colspan=2 align=right><input type=button value=\"Delete\" onclick='delete_poi("+poi_id+")' /></td></table>";
 			}*/
 			
-			function route_to_here(id){
-				console.log(id);
-				var s_lat = my_location._latlng.lat;
+			function route_to_poi(id){
+				/*var s_lat = my_location._latlng.lat;
 				var s_lon = my_location._latlng.lng;
 				var s_id = get_nearest_node(routing_type, s_lat, s_lon);
 
 				var d_lat = lst_poi[id]._latlng.lat;
 				var d_lon = lst_poi[id]._latlng.lng;
+				var d_id = get_nearest_node(routing_type, d_lat, d_lon);
+
+				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
+				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
+			
+				var res = do_search(routing_type, p1, p2);
+				res.push([s_lat, s_lon]);
+				res.unshift([d_lat, d_lon]);
+				route = L.polyline(res, {color: 'blue'}).addTo(map);*/
+				var lat = lst_poi[id]._latlng.lat;
+				var lon = lst_poi[id]._latlng.lng;
+				route_to_pos(lat, lon);
+			}
+
+			function route_to_pos(lat, lon){
+				if(route){
+					map.removeLayer(route);
+					route = null;
+				}
+
+				var s_lat = my_location._latlng.lat;
+				var s_lon = my_location._latlng.lng;
+				var s_id = get_nearest_node(routing_type, s_lat, s_lon);
+
+				var d_lat = lat;
+				var d_lon = lon;
 				var d_id = get_nearest_node(routing_type, d_lat, d_lon);
 
 				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
@@ -149,7 +176,7 @@
 					image_back = "background-image: " + image_url;
 					image_val = "";
 				}
-				return "<table style='width: 250px;'><tr><td style='width: 150px; vertical-align: top;'><img style='margin-top: -5px; margin-right: 5px; width: 25px;' src='images/poi/" + type + ".png' />" + type + "<br /><br /><b>" + title + "</b><br />" + text + "</td><td style='background-color: #EEE; color: #AAA; text-align: center; background-repeat: no-repeat; background-size: contain; background-position: center center; "+image_back+"' rowspan=2>"+image_val+"</td></tr><tr><td style='vertical-align: bottom;'><table style='width: 100%; height: 30px; font-size: 10px'><tr><td style='width: 50%'><input style='width: 100%; height: 100%; font-size: 8px' type='button' onclick='open_poi_edit(" + id + ")' value='Edit' /></td><td style='width: 50%;'><input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_here(" + id + ")' /></td></tr></table></td></tr></table>";
+				return "<table style='width: 250px;'><tr><td style='width: 150px; vertical-align: top;'><img style='margin-top: -5px; margin-right: 5px; width: 25px;' src='images/poi/" + type + ".png' />" + type + "<br /><br /><b>" + title + "</b><br />" + text + "</td><td style='background-color: #EEE; color: #AAA; text-align: center; background-repeat: no-repeat; background-size: contain; background-position: center center; "+image_back+"' rowspan=2>"+image_val+"</td></tr><tr><td style='vertical-align: bottom;'><table style='width: 100%; height: 30px; font-size: 10px'><tr><td style='width: 50%'><input style='width: 100%; height: 100%; font-size: 8px' type='button' onclick='open_poi_edit(" + id + ")' value='Edit' /></td><td style='width: 50%;'><input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_poi(" + id + ")' /></td></tr></table></td></tr></table>";
 			}
 			
 			function init_pois(){
@@ -234,8 +261,14 @@
 						var d = findDistanceToSegment(p1[0], p1[1], p2[0], p2[1], p[0], p[1]);
 						
 						if(min_id == -1 || d < min_dist){
-							min_id = id;
-							min_dist = d;
+							if(get_distance(p, p1) < get_distance(p, p2)){
+								min_id = id;
+								min_dist = d;
+							}
+							else{
+								min_id = nodes.dn[i];
+								min_dist = d;
+							}
 						}
 					}
 				});
@@ -347,8 +380,8 @@
 			
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
-				map = L.map('map').setView([21.4236, 39.8269], 12);
-				//map = L.map('map').setView([36.3183, 59.5260], 12);
+				//map = L.map('map').setView([21.4236, 39.8269], 12);
+				map = L.map('map').setView([36.3183, 59.5260], 12);
 				
 				toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
@@ -360,7 +393,7 @@
 				}).addTo(map);
 
 				init_pois();
-				//var popup = L.popup();
+				var here_popup = L.popup();
 				/*options = {};
 				options.icon = test_marker;
 				options.draggable = true;
@@ -371,12 +404,6 @@
 				*/
 				
 				function onMapClick(e) {
-					/*popup
-						.setLatLng(e.latlng)
-						.setContent("You clicked the map at " + e.latlng.toString())
-						.openOn(map);
-						*/
-					
 					if(state == "ROUTING"){
 						if(routing_points.length < 2){
 							var node_id = get_nearest_node(routing_type, e.latlng.lat, e.latlng.lng);
@@ -404,6 +431,12 @@
 				}
 
 				map.on('click', onMapClick);
+				map.on('taphold', function(e){
+					here_popup
+						.setLatLng(e.latlng)
+						.setContent(e.latlng.toString() + "<br />" + "<input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_pos(" + e.latlng.lat + ", " + e.latlng.lng + ")' />")
+						.openOn(map);
+				});
 
 				$(".msDropDown").msDropDown({height: 100});
 				
