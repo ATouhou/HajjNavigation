@@ -43,6 +43,8 @@
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
 			});
+
+			var routing_type = "drive";
 			
 			var info;
 			var db = window.openDatabase("Database", "1.0", "HajjNavigation", 2000000);
@@ -66,7 +68,7 @@
 				if(my_location_watcher == null){
 					my_location_watcher = window.setInterval(function(){
 						navigator.geolocation.getCurrentPosition(function(position){
-							change_desc("Position is: " + position.coords.latitude + ", " + position.coords.longitude);
+							//change_desc("Position is: " + position.coords.latitude + ", " + position.coords.longitude);
 
 							if(my_location == null){
 								var options = {};
@@ -76,11 +78,12 @@
 									iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
 								});
 								my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
-								my_location.fire('move', { latlng: my_location._latlng });
+								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
 							}else{
-								my_location._latlng.lat = 0.1 * my_location._latlng.lat + 0.9 * p.coords.latitude;
-								my_location._latlng.lng = 0.1 * my_location._latlng.lng + 0.9 * p.coords.longitude;
-								my_location.update();
+								var mylat = 0.1 * my_location.getLatLng().lat + 0.9 * position.coords.latitude;
+								var mylng = 0.1 * my_location.getLatLng().lng + 0.9 * position.coords.longitude;
+
+								my_location.setLatLng(new L.LatLng(mylat, mylng));
 							}
 						}, function(error){
 							change_desc("Arsheet Company");
@@ -97,28 +100,6 @@
 					clearInterval(my_location_watcher);
 					my_location_watcher = null;
 				}
-				/*var suc = function(p) {
-					if(my_location == null){
-						my_location = L.marker([p.coords.latitude, p.coords.logitude]).addTo(map).update();
-					}
-					else{
-						my_location._latlng.lat = 0.1 * my_location._latlng.lat + 0.9 * p.coords.latitude;
-						my_location._latlng.lng = 0.1 * my_location._latlng.lng + 0.9 * p.coords.longitude;
-						my_location.update();
-					}
-				};
-				var locFail = function() {
-					change_state("NONE");
-				};
-				if(my_location_watcher == null)
-					my_location_watcher = navigator.geolocation.watchPosition(suc, locFail, {frequency:30000, enableHighAccuracy: true});
-				else{
-					navigator.getlocation.clearWatch(my_location_watcher);
-					my_location_watcher = null;
-					change_state("NONE");
-				}*/
-				
-				
 			}
 			
 			function delete_poi(id){
@@ -128,7 +109,9 @@
 					});
 					map.removeLayer(lst_poi[id]);
 					lst_poi[id] = undefined;
+					return true;
 				}
+				return false;
 			}
 			
 			/*function gen_poi_popup(poi_id){
@@ -144,16 +127,18 @@
 				console.log(id);
 				var s_lat = my_location._latlng.lat;
 				var s_lon = my_location._latlng.lng;
-				var s_id = get_nearest_node(s_lat, s_lon);
+				var s_id = get_nearest_node(routing_type, s_lat, s_lon);
 
 				var d_lat = lst_poi[id]._latlng.lat;
 				var d_lon = lst_poi[id]._latlng.lng;
-				var d_id = get_nearest_node(d_lat, d_lon);
+				var d_id = get_nearest_node(routing_type, d_lat, d_lon);
 
 				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
 				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
 			
-				var res = do_search(p1, p2);
+				var res = do_search(routing_type, p1, p2);
+				res.push([s_lat, s_lon]);
+				res.unshift([d_lat, d_lon]);
 				route = L.polyline(res, {color: 'blue'}).addTo(map);
 			}
 
@@ -183,14 +168,74 @@
 				});
 			}
 			
-			function get_nearest_node(lat, lon){
+			function get_distance(p1, p2){
+				p2 = typeof p2 !== 'undefined' ? p2 : [0, 0];
+				return Math.sqrt((p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1]));
+			}
+			
+			function findDistanceToSegment(x1, y1, x2, y2, pointX, pointY)
+			{
+				var diffX = x2 - x1;
+				var diffY = y2 - y1;
+				if ((diffX == 0) && (diffY == 0))
+				{
+					diffX = pointX - x1;
+					diffY = pointY - y1;
+					return Math.sqrt(diffX * diffX + diffY * diffY);
+				}
+				var t = ((pointX - x1) * diffX + (pointY - y1) * diffY) / (diffX * diffX + diffY * diffY);
+				if (t < 0)
+				{
+					//point is nearest to the first point i.e x1 and y1
+					diffX = pointX - x1;
+					diffY = pointY - y1;
+				}
+				else if (t > 1)
+				{
+					//point is nearest to the end point i.e x2 and y2
+					diffX = pointX - x2;
+					diffY = pointY - y2;
+				}
+				else
+				{
+					//if perpendicular line intersect the line segment.
+					diffX = pointX - (x1 + t * diffX);
+					diffY = pointY - (y1 + t * diffY);
+				}
+
+				//returning shortest distance
+				return Math.sqrt(diffX * diffX + diffY * diffY);
+			}
+
+			function get_nearest_node(type, lat, lon){
 				var min_id = -1;
 				var min_dist = 999;
 				$.each(json, function(id, nodes){
-					var d = (nodes.lat - lat)*(nodes.lat - lat) + (nodes.lon - lon)*(nodes.lon - lon);
+					/*var d = (nodes.lat - lat)*(nodes.lat - lat) + (nodes.lon - lon)*(nodes.lon - lon);
 					if(min_id == -1 || d < min_dist){
 						min_id = id;
 						min_dist = d;
+					}*/
+
+					var cnt = nodes.dn.length;
+					if(type == "walk")
+						cnt = nodes.wn.length;
+					
+					for(var i = 0; i < cnt; i++){
+						var n1    = json[nodes.dn[i]];
+						if(type == "walk")
+							n1 = json[nodes.wn[i]];
+							
+						var p  = [lat      , lon];
+						var p1 = [nodes.lat, nodes.lon];
+						var p2 = [n1.lat   , n1.lon];
+
+						var d = findDistanceToSegment(p1[0], p1[1], p2[0], p2[1], p[0], p[1]);
+						
+						if(min_id == -1 || d < min_dist){
+							min_id = id;
+							min_dist = d;
+						}
 					}
 				});
 				return min_id;
@@ -206,7 +251,12 @@
 			  }
 			};
 
-
+			function delete_poi_edit(){
+				var id = $("#poi_window #id").val();
+				if(id != '' && delete_poi(id))
+					close_poi_edit();
+			}
+			
 			function open_poi_edit(id){
 				db.transaction(function(tx){
 					tx.executeSql("SELECT [id], [type], [title], [text], [image] FROM POI WHERE id=?",[id],function(tx, result){
@@ -296,7 +346,8 @@
 			
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
-				map = L.map('map').setView([21.4236, 39.8269], 12);
+				//map = L.map('map').setView([21.4236, 39.8269], 12);
+				map = L.map('map').setView([36.3183, 59.5260], 12);
 				
 				toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
@@ -327,7 +378,7 @@
 					
 					if(state == "ROUTING"){
 						if(routing_points.length < 2){
-							var node_id = get_nearest_node(e.latlng.lat, e.latlng.lng);
+							var node_id = get_nearest_node(routing_type, e.latlng.lat, e.latlng.lng);
 							routing_markers.push(L.marker([json[node_id].lat, json[node_id].lon]).addTo(map));
 							routing_points.push(node_id);
 							
@@ -335,7 +386,7 @@
 								var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
 								var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
 							
-								var res = do_search(p1, p2);
+								var res = do_search(routing_type, p1, p2);
 								route = L.polyline(res, {color: 'blue'}).addTo(map);
 								change_state("NONE");
 							}
@@ -345,19 +396,6 @@
 					
 					
 					if(state == "ADD_POI"){
-						/*marker = L.marker(e.latlng, create_poi_marker('Accommodation')).addTo(map);
-						//lst_poi[marker.id] = marker;
-						
-						db.transaction(function(tx){
-							tx.executeSql("INSERT INTO POI ([lat], [lon], [type], [title], [text]) VALUES (?, ?, ?, ?, ?)", [e.latlng.lat.toString(), e.latlng.lng.toString(), 'Accommodation', '', ''], function(tx, result){
-								var marker_id = result.insertId;
-								lst_poi[marker_id] = marker;
-						
-								var popup = gen_poi_popup(marker_id);
-								marker.bindPopup(popup);
-								setTimeout(function(){marker.openPopup();}, 1000);
-							});
-						});*/
 						add_new_poi(e.latlng.lat, e.latlng.lng);
 						
 						change_state("NONE");
@@ -368,17 +406,6 @@
 
 				$(".msDropDown").msDropDown({height: 100});
 				
-				/*map.on('popupopen', function(e) {
-					$(".leaflet-popup-content select option").filter(function(){ 
-						return $(this).val() == e.popup._source.options.icon.options.iconType;
-					}).prop("selected", true); 
-					$(".leaflet-popup-content select").msDropDown({height: 100});
-					
-					$(".leaflet-popup-content input[type=text]").val(e.popup._source.options.icon.options.title);
-					$(".leaflet-popup-content textarea").val(e.popup._source.options.icon.options.text);
-					
-				});*/
-				
 				$("#POI_img_edit").click(function(){
 					/*var popover = new CameraPopoverOptions(300, 300, 100, 100, Camera.PopoverArrowDirection.ARROW_ANY);*/
 					var options = {
@@ -388,10 +415,6 @@
 						sourceType      : Camera.PictureSourceType.SAVEDPHOTOALBUM,
 						destinationType : Camera.DestinationType.DATA_URL,
 						encodingType    : Camera.EncodingType.JPEG
-						/*quality: 50,
-						
-						mediaType       : PICTURE*//*,
-						popoverOptions  : popover*/
 					};
 					navigator.camera.getPicture(function(imgData){
 						$("#POI_img_edit").css('background-image', 'url(data:image/jpeg;base64,' + imgData + ')');
@@ -417,25 +440,19 @@
 							<tr>
 								<td style="padding: 5px">
 									<select id="poi_type" class='msDropDown' style='width: 100%;'>
-										<option value='Accommodation'  data-description='' data-image='images/poi/Accommodation.png'>Accommodation</option>
-										<option value='ATM'            data-description='' data-image='images/poi/ATM.png'>ATM</option>
-										<option value='Bank'           data-description='' data-image='images/poi/Bank.png'>Bank</option>
-										<option value='Car Aid'        data-description='' data-image='images/poi/Car Aid.png'>Car Aid</option>
-										<option value='Education'      data-description='' data-image='images/poi/Education.png'>Education</option>
-										<option value='Emergency'      data-description='' data-image='images/poi/Emergency.png'>Emergency</option>
-										<option value='Entertainment'  data-description='' data-image='images/poi/Entertainment.png'>Entertainment</option>
-										<option value='Exchange'       data-description='' data-image='images/poi/Exchange.png'>Exchange</option>
-										<option value='Food Shop'      data-description='' data-image='images/poi/Food Shop.png'>Food Shop</option>
-										<option value='Fuel'           data-description='' data-image='images/poi/Fuel.png'>Fuel</option>
-										<option value='Geocache'       data-description='' data-image='images/poi/Geocache.png'>Geocache</option>
-										<option value='Haram Entrance' data-description='' data-image='images/poi/Haram Entrance.png'>Haram Entrance</option>
-										<option value='Health'         data-description='' data-image='images/poi/Health.png'>Health</option>
-										<option value='Hospital'       data-description='' data-image='images/poi/Hospital.png'>Hospital</option>
-										<option value='Money'          data-description='' data-image='images/poi/Money.png'>Money</option>
-										<option value='Parking'        data-description='' data-image='images/poi/Parking.png'>Parking</option>
-										<option value='Resturant'      data-description='' data-image='images/poi/Resturant.png'>Resturant</option>
-										<option value='Sightseeing'    data-description='' data-image='images/poi/Sightseeing.png'>Sightseeing</option>
-										<option value='Transport'      data-description='' data-image='images/poi/Transport.png'>Transport</option>
+										<option value='Disable Ramp'      data-description='' data-image='images/poi/Disable Ramp.png'>Disable Ramp</option>
+										<option value='Haram Entrances'   data-description='' data-image='images/poi/Haram Entrances.png'>Haram Entrances</option>
+										<option value='Hotels'            data-description='' data-image='images/poi/Hotels.png'>Hotels</option>
+										<option value='Medical'           data-description='' data-image='images/poi/Medical.png'>Medical</option>
+										<option value='Mosques'           data-description='' data-image='images/poi/Mosques.png'>Mosques</option>
+										<option value='Place of Interest' data-description='' data-image='images/poi/Place of Interest.png'>Place of Interest</option>
+										<option value='Resturants'        data-description='' data-image='images/poi/Resturants.png'>Resturants</option>
+										<option value='Services Center'   data-description='' data-image='images/poi/Services Center.png'>Services Center</option>
+										<option value='Shopping'          data-description='' data-image='images/poi/Shopping.png'>Shopping</option>
+										<option value='Toilet'            data-description='' data-image='images/poi/Toilet.png'>Toilet</option>
+										<option value='Transport'         data-description='' data-image='images/poi/Transport.png'>Transport</option>
+										<option value='Wudu'              data-description='' data-image='images/poi/Wudu.png'>Wudu</option>
+										<option value='Zam - Zam'         data-description='' data-image='images/poi/Zam - Zam.png'>Zam - Zam</option>
 									</select>
 								</td>
 							</tr>
@@ -461,10 +478,13 @@
 					<td style="vertical-align: bottom; text-align: center">
 						<table style="width: 100%; height: 40px;">
 							<tr>
-								<td style="width: 50%">
+								<td style="width: 33%">
 									<input type="button" value="OK" style="width: 100%; height: 100%" onclick="save_poi(); close_poi_edit();" />
 								</td>
-								<td style="width: 50%">
+								<td style="width: 33%">
+									<input type="button" value="Delete" style="width: 100%; height: 100%" onclick="delete_poi_edit();" />
+								</td>
+								<td style="width: 33%">
 									<input type="button" value="Cancel" style="width: 100%; height: 100%" onclick="close_poi_edit();" />
 								</td>
 							</tr>

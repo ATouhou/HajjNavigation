@@ -12,7 +12,7 @@ function f(state){
   return(g + h);
 }
 
-function do_search(initial_state, goal_state){
+function do_search(type, initial_state, goal_state){
   fringe = [];
   visited = {};
   parent = {};
@@ -38,14 +38,21 @@ function do_search(initial_state, goal_state){
 	visited[top.id] = true;
 
 	var succ = [];
-	var nodes = json[top.id].nei;
+	var nodes;
+	if(type=="walk")
+		nodes = json[top.id].wn;
+	else if(type=="drive")
+		nodes = json[top.id].dn;
+	var c = 0;
 	for(var i = 0; i < nodes.length; i++){
-		succ[i] = {};
-		succ[i].id = nodes[i];
-		succ[i].lat = json[nodes[i]].lat;
-		succ[i].lon = json[nodes[i]].lon;
-		succ[i].parent = top;
-		succ[i].g = succ[i].parent.g + Math.sqrt((succ[i].lat-succ[i].parent.lat)*(succ[i].lat-succ[i].parent.lat) + (succ[i].lon-succ[i].parent.lon)*(succ[i].lon-succ[i].parent.lon));
+		if(json[nodes[i]] == undefined) continue;
+		succ[c] = {};
+		succ[c].id = nodes[i];
+		succ[c].lat = json[nodes[i]].lat;
+		succ[c].lon = json[nodes[i]].lon;
+		succ[c].parent = top;
+		succ[c].g = succ[c].parent.g + Math.sqrt((succ[c].lat-succ[c].parent.lat)*(succ[c].lat-succ[c].parent.lat) + (succ[c].lon-succ[c].parent.lon)*(succ[c].lon-succ[c].parent.lon));
+		c++;
 	}
 
 	for(i = 0; i < succ.length; i++){
@@ -64,6 +71,7 @@ gen_path = function(top){
 		path.push([parent[t_id].lat, parent[t_id].lon]);
 		t_id = parent[t_id].id;
 	}
-	path.push([parent[t_id].lat, parent[t_id].lon]);
+	if(parent[t_id] != undefined)
+		path.push([parent[t_id].lat, parent[t_id].lon]);
 	console.log(path);
 }
