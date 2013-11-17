@@ -223,9 +223,10 @@
 					
 					for(var i = 0; i < cnt; i++){
 						var n1    = json[nodes.dn[i]];
+						if(typeof n1 == 'undefined') continue;
 						if(type == "walk")
 							n1 = json[nodes.wn[i]];
-							
+						
 						var p  = [lat      , lon];
 						var p1 = [nodes.lat, nodes.lon];
 						var p2 = [n1.lat   , n1.lon];
