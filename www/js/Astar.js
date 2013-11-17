@@ -71,7 +71,7 @@ gen_path = function(top){
 		path.push([parent[t_id].lat, parent[t_id].lon]);
 		t_id = parent[t_id].id;
 	}
-	if(parent[t_id] != undefined)
-		path.push([parent[t_id].lat, parent[t_id].lon]);
+	//if(parent[t_id] != undefined)
+	//	path.push([parent[t_id].lat, parent[t_id].lon]);
 	console.log(path);
 }
