@@ -12,8 +12,10 @@ L.Control.Toolbar = L.Control.extend({
 		        'My Location', 'My Location',  'leaflet-control-toolbar',  container, this._btn_1_click,  this);
 		this._btn_2 = this._createButton(
 		        'Add POI', 'Add POI', 'leaflet-control-toolbar', container, this._btn_2_click, this);
-		this._btn_exit = this._createButton(
+		this._btn_3 = this._createButton(
 		        'Routing', 'Routing', 'leaflet-control-toolbar', container, this._btn_3_click, this);
+		this._btn_4 = this._createButton(
+		        'Drive', 'Drive', 'leaflet-control-toolbar', container, this._btn_4_click, this);
 
 		return container;
 	},
@@ -38,7 +40,18 @@ L.Control.Toolbar = L.Control.extend({
 		}
 		change_state("ROUTING", "Tap on the map for source and dest");
 	},
-
+	
+	_btn_4_click: function (e) {
+		if(routing_type == "drive"){
+			routing_type = "walk";
+			this._btn_4.innerHTML = this._btn_4.title = "Walk";
+		}
+		else{
+			routing_type = "drive";
+			this._btn_4.innerHTML = this._btn_4.title = "Drive";
+		}
+	},
+	
 	_createButton: function (html, title, className, container, fn, context) {
 		var link = L.DomUtil.create('a', className, container);
 		link.innerHTML = html;
