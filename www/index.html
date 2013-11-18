@@ -14,7 +14,6 @@
 		<link rel="stylesheet" href="css/dd.css" />
 		<!--[if lte IE 8]><link rel="stylesheet" href="plugin/leaflet/leaflet.ie.css" /><![endif]-->
 		<script src="js/jq.js"></script>
-        <script type="text/javascript" src="js/jquery.tapandhold.js"></script>
         <script type="text/javascript" src="js/jquery.dd.js"></script>
         <script type="text/javascript" src="js/Astar.js"></script>
         <script type="text/javascript" src="js/init_db.js"></script>
@@ -50,7 +49,7 @@
 			var info;
 			var db = window.openDatabase("Database", "1.0", "HajjNavigation", 2000000);
 			
-			var my_location = L.marker([36.3113,59.5716]);
+			var my_location = null;
 						
 			var my_location_watcher = null;
 			var state = "NONE";
@@ -177,6 +176,32 @@
 					image_val = "";
 				}
 				return "<table style='width: 250px;'><tr><td style='width: 150px; vertical-align: top;'><img style='margin-top: -5px; margin-right: 5px; width: 25px;' src='images/poi/" + type + ".png' />" + type + "<br /><br /><b>" + title + "</b><br />" + text + "</td><td style='background-color: #EEE; color: #AAA; text-align: center; background-repeat: no-repeat; background-size: contain; background-position: center center; "+image_back+"' rowspan=2>"+image_val+"</td></tr><tr><td style='vertical-align: bottom;'><table style='width: 100%; height: 30px; font-size: 10px'><tr><td style='width: 50%'><input style='width: 100%; height: 100%; font-size: 8px' type='button' onclick='open_poi_edit(" + id + ")' value='Edit' /></td><td style='width: 50%;'><input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_poi(" + id + ")' /></td></tr></table></td></tr></table>";
+			}
+			
+			function filter_poi(poi){
+				$.each(lst_poi, function(id, e_poi){
+					map.removeLayer(e_poi);
+				});
+
+				lst_poi = {};
+				
+				var where_clause = "";
+				if(typeof poi !== 'undefined')
+					where_clause = " WHERE type='" + poi + "'";
+
+				db.transaction(function(tx){
+					tx.executeSql("SELECT [id], [lat], [lon], [type], [title], [text], [image] FROM POI" + where_clause, [], function(tx, result){
+						var len = result.rows.length;
+						for(var i = 0; i < len; i++){
+							var poi_id = result.rows.item(i).id;
+							var popup = gen_poi_popup(poi_id, result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text, result.rows.item(i).image);
+							lst_poi[poi_id] = L.marker([result.rows.item(i).lat, result.rows.item(i).lon], create_poi_marker(result.rows.item(i).type, result.rows.item(i).title, result.rows.item(i).text, result.rows.item(i).image)).addTo(map).bindPopup(popup);
+							/*lst_poi[poi_id].on('click', function(e){
+								console.log(e.target.id);
+							});*/
+						}
+					});
+				});
 			}
 			
 			function init_pois(){
@@ -369,7 +394,7 @@
 			
 			var routing_points = [];
 			var routing_markers = [];
-			var map, toolbar;
+			var map, toolbar, poitoolbar;
 			var route;
 
 			$(document).ready(function(){
@@ -385,6 +410,9 @@
 				
 				toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
+
+				poitoolbar = new L.Control.POIToolbar();
+				map.addControl(poitoolbar);
 
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
 				info = L.tileLayer('map_data/{z}/{x}/{y}.png', {
@@ -419,24 +447,21 @@
 								change_state("NONE");
 							}
 						}
-					}
-					
-					
-					
-					if(state == "ADD_POI"){
+					} 
+					else if(state == "ADD_POI"){
 						add_new_poi(e.latlng.lat, e.latlng.lng);
 						
 						change_state("NONE");
 					}
-				}
-
-				map.on('click', onMapClick);
-				map.on('taphold', function(e){
+					else{
 					here_popup
 						.setLatLng(e.latlng)
 						.setContent(e.latlng.toString() + "<br />" + "<input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_pos(" + e.latlng.lat + ", " + e.latlng.lng + ")' />")
 						.openOn(map);
-				});
+					}
+				}
+
+				map.on('click', onMapClick);
 
 				$(".msDropDown").msDropDown({height: 100});
 				
