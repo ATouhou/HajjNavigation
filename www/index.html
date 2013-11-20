@@ -12,6 +12,8 @@
 		<link rel="stylesheet" href="plugin/leaflet/leaflet.css" />
 		<link rel="stylesheet" href="plugin/toolbar/toolbar.css" />
 		<link rel="stylesheet" href="css/dd.css" />
+		<link rel="stylesheet" href="plugin/minimap/Control.MiniMap.css" />
+
 		<!--[if lte IE 8]><link rel="stylesheet" href="plugin/leaflet/leaflet.ie.css" /><![endif]-->
 		<script src="js/jq.js"></script>
         <script type="text/javascript" src="js/jquery.dd.js"></script>
@@ -22,7 +24,7 @@
 	<body>
 		<div id="screen">
 			<div id="map" style="width: 600px; height: 400px"></div>
-		
+			<div id="dir" style="position: fixed; width: 50px; height: 50px; left: 50%; top: 0; margin-left: -25px; z-index:2000; background: url(images/arrow.png); background-size: contain; display: none;"></div>
 			<script src="plugin/leaflet/leaflet-src.js"></script>
 			<script src="plugin/leaflet/bouncemarker.js"></script>
 			<script type="text/javascript" src="js/markers.js"></script>
@@ -37,6 +39,10 @@
 			<script src="plugin/routing/utils/Polyline.Snapping.js"></script>
 		
 			<script src="plugin/toolbar/toolbar.js"></script>
+			<script src="plugin/minimap/Control.MiniMap.js"></script>
+
+			<script src="plugin/spin/spin.min.js"></script>
+			<script src="plugin/spin/leaflet.spin.js"></script>
 
 			<script>
 			$(window).resize(function(){
@@ -86,6 +92,12 @@
 
 								my_location.setLatLng(new L.LatLng(mylat, mylng));
 							}
+							
+							if(target != null){
+								//dir = Math.atan2(target[1] - my_location.getLatLng().lng, target[0] - my_location.getLatLng().lat) * 180 / 3.14;
+								//set_dir(dir);
+							}
+							
 						}, function(error){
 							change_desc("Arsheet Company");
 							//alert("Error retriving location");
@@ -95,6 +107,7 @@
 							maximumAge: 4000,
 							timeout: 5000
 						});
+												
 					}, 1000);
 				}
 				else{
@@ -149,23 +162,29 @@
 				if(route){
 					map.removeLayer(route);
 					route = null;
+					target = null;
+					$("#dir").fadeOut('fast');
 				}
+				map.spin(true, {top: 10, left: 70});
+				setTimeout(function(){
+					target = [lat, lon];
+					
+					var s_lat = my_location._latlng.lat;
+					var s_lon = my_location._latlng.lng;
+					var s_id = get_nearest_node(routing_type, s_lat, s_lon);
 
-				var s_lat = my_location._latlng.lat;
-				var s_lon = my_location._latlng.lng;
-				var s_id = get_nearest_node(routing_type, s_lat, s_lon);
+					var d_lat = lat;
+					var d_lon = lon;
+					var d_id = get_nearest_node(routing_type, d_lat, d_lon);
 
-				var d_lat = lat;
-				var d_lon = lon;
-				var d_id = get_nearest_node(routing_type, d_lat, d_lon);
-
-				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
-				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
-			
-				var res = do_search(routing_type, p1, p2);
-				res.push([s_lat, s_lon]);
-				res.unshift([d_lat, d_lon]);
-				route = L.polyline(res, {color: 'blue'}).addTo(map);
+					var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
+					var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
+					var res = do_search(routing_type, p1, p2);
+					res.push([s_lat, s_lon]);
+					res.unshift([d_lat, d_lon]);
+					route = L.polyline(res, {color: 'blue'}).addTo(map);
+					map.spin(false);
+				}, 300);
 			}
 
 			function gen_poi_popup(id, type, title, text, image_url){
@@ -394,9 +413,18 @@
 			
 			var routing_points = [];
 			var routing_markers = [];
-			var map, toolbar, poitoolbar;
-			var route;
+			var map, minmap, toolbar, poitoolbar;
+			var route = null;
+			var target = null;
 
+			function set_dir(degrees){
+				$("#dir").fadeIn('fast');
+				$("#dir").css({'-webkit-transform' : 'rotate('+ degrees +'deg)',
+							 '-moz-transform' : 'rotate('+ degrees +'deg)',
+							 '-ms-transform' : 'rotate('+ degrees +'deg)',
+							 'transform' : 'rotate('+ degrees +'deg)'});
+			}
+			
 			$(document).ready(function(){
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
@@ -405,8 +433,8 @@
 			
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
-				map = L.map('map').setView([21.4236, 39.8269], 12);
-				//map = L.map('map').setView([36.3183, 59.5260], 12);
+				//map = L.map('map').setView([21.4236, 39.8269], 12);
+				map = L.map('map').setView([36.3183, 59.5260], 12);
 				
 				toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
@@ -415,11 +443,17 @@
 				map.addControl(poitoolbar);
 
 				//L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
-				info = L.tileLayer('map_data/{z}/{x}/{y}.png', {
+				var tile_url = 'map_data/{z}/{x}/{y}.png';
+
+				info = L.tileLayer(tile_url, {
 					maxZoom: 18,
 					attribution: 'Arsheet Company'
 				}).addTo(map);
 
+				var osm2 = new L.TileLayer(tile_url, {minZoom: 0, maxZoom: 13});
+				minimap = new L.Control.MiniMap(osm2, { toggleDisplay: true, width: 100, height: 100 }).addTo(map);
+
+				
 				init_pois();
 				var here_popup = L.popup();
 				/*options = {};
@@ -441,10 +475,13 @@
 							if(routing_points.length == 2){
 								var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
 								var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
-							
-								var res = do_search(routing_type, p1, p2);
-								route = L.polyline(res, {color: 'blue'}).addTo(map);
-								change_state("NONE");
+								map.spin(true,{top: 10, left: 70});
+								setTimeout(function(){
+									var res = do_search(routing_type, p1, p2);
+									route = L.polyline(res, {color: 'blue'}).addTo(map);
+									change_state("NONE");
+									map.spin(false);
+								}, 300);
 							}
 						}
 					} 
