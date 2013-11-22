@@ -427,11 +427,6 @@
 			}
 			
 			$(document).ready(function(){
-				document.body.addEventListener('touchmove', function(e) {
-					// Cancel the event
-					e.preventDefault();
-				}, false);
-
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
 					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300), [image] text)");
@@ -439,8 +434,8 @@
 			
 				$("#map").width("100%");		
 				$("#map").height($(window).height());
-				//map = L.map('map').setView([21.4236, 39.8269], 12);
-				map = L.map('map').setView([36.3183, 59.5260], 12);
+				map = L.map('map').setView([21.4236, 39.8269], 12);
+				//map = L.map('map').setView([36.3183, 59.5260], 12);
 				
 				toolbar = new L.Control.Toolbar();
 				map.addControl(toolbar);
