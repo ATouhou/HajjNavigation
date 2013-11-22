@@ -25,7 +25,7 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_2_click: function (e) {
-		load_poi_list_items();
+		load_poi_list_items('');
 		$('#manage_poi_window').fadeIn('fast');
 		//change_state("ADD_POI", "Click on the map ");
 	},
