@@ -427,6 +427,11 @@
 			}
 			
 			$(document).ready(function(){
+				document.body.addEventListener('touchmove', function(e) {
+					// Cancel the event
+					e.preventDefault();
+				}, false);
+
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
 					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300), [image] text)");
@@ -650,7 +655,7 @@
 				</tr>
 				<tr style="height: 30px;">
 					<td colspan=2>
-						<input type="button" value="Back" style="width: 100%;" onclick="$('#manage_poi_window').fadeOut('fast');" />
+						<input type="button" value="Back" style="width: 100%; height: 40px;" onclick="$('#manage_poi_window').fadeOut('fast');" />
 					</td>
 				</tr>
 			</table>
