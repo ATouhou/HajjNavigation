@@ -11,7 +11,7 @@ L.Control.Toolbar = L.Control.extend({
 		this._btn_1  = this._createButton(
 		        'My Location', 'My Location',  'leaflet-control-toolbar',  container, this._btn_1_click,  this);
 		this._btn_2 = this._createButton(
-		        'Add POI', 'Add POI', 'leaflet-control-toolbar', container, this._btn_2_click, this);
+		        'POIs', 'Managing POIs', 'leaflet-control-toolbar', container, this._btn_2_click, this);
 		this._btn_3 = this._createButton(
 		        'Routing', 'Routing', 'leaflet-control-toolbar', container, this._btn_3_click, this);
 		this._btn_4 = this._createButton(
@@ -25,7 +25,9 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_2_click: function (e) {
-		change_state("ADD_POI", "Click on the map ");
+		load_poi_list_items();
+		$('#manage_poi_window').fadeIn('fast');
+		//change_state("ADD_POI", "Click on the map ");
 	},
 
 	_btn_3_click: function (e) {
