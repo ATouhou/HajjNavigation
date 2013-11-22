@@ -596,8 +596,8 @@
 			</table>
 			</div>
 			<script>
-				function create_poi_list_item(id, title, text, type, img){
-					return "<table style=\"width: 200px; height: 80px; margin: 5px; display: inline-block; font-size: 10px; border: 1px solid #EEE; background-color: #FAFAFA; border-radius: 10px; padding: 5px; box-shadow: 1px 1px 4px 0px #AAA;\"><tr><td rowspan=3 style=\"width: 80px; height: 75px; background-color: #EEE; background-image: "+img+"; background-repeat: no-repeat; background-size: contain; background-position: center center;\"></td><td style=\"width: 120px\"><b>"+title+"</b></td></tr><tr><td>"+type+"</td></tr><tr style=\"height: 100%; vertical-align: top\"><td>"+text+"</td></tr></table>";
+				function create_poi_list_item(id, lat, lon, title, text, type, img){
+					return "<table onclick=\"$('#manage_poi_window').fadeOut('fast'); map.setView(["+lat+", "+lon+"], map.getZoom());\" style=\"width: 200px; height: 80px; margin: 5px; display: inline-block; font-size: 10px; border: 1px solid #EEE; background-color: #FAFAFA; border-radius: 10px; padding: 5px; box-shadow: 1px 1px 4px 0px #AAA;\"><tr><td rowspan=3 style=\"width: 80px; height: 75px; background-color: #EEE; background-image: "+img+"; background-repeat: no-repeat; background-size: contain; background-position: center center;\"></td><td style=\"width: 120px\"><b>"+title+"</b></td></tr><tr><td>"+type+"</td></tr><tr style=\"height: 100%; vertical-align: top\"><td>"+text+"</td></tr></table>";
 				}
 				
 				function load_poi_list_items(q){
@@ -610,14 +610,16 @@
 
 					document.getElementById('poi_list_td').innerHTML = "";
 					db.transaction(function(tx){
-						tx.executeSql("SELECT [id], [type], [title], [text], [image] FROM POI " + query, [], function(tx, result){
+						tx.executeSql("SELECT [id], [lat], [lon], [type], [title], [text], [image] FROM POI " + query, [], function(tx, result){
 							for(var i=0;i<result.rows.length;i++){
 								var s_id    = result.rows.item(i).id;
+								var s_lat   = result.rows.item(i).lat;
+								var s_lon   = result.rows.item(i).lon;
 								var s_type  = result.rows.item(i).type;
 								var s_title = result.rows.item(i).title;
 								var s_text  = result.rows.item(i).text;
 								var s_image = result.rows.item(i).image;
-								var elem = create_poi_list_item(s_id, s_title, s_text, s_type, s_image);
+								var elem = create_poi_list_item(s_id, s_lat, s_lon, s_title, s_text, s_type, s_image);
 								document.getElementById('poi_list_td').innerHTML += elem;
 							}
 						});
