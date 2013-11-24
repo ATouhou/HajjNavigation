@@ -25,7 +25,7 @@
 	<body>
 		<div id="screen">
 			<div id="map" style="width: 600px; height: 400px"></div>
-			<div id="dir" style="position: fixed; width: 50px; height: 50px; left: 50%; top: 0; margin-left: -25px; z-index:2000; background: url(images/arrow.png); background-size: contain; display: none;"></div>
+			<div id="dir" style="position: fixed; width: 50px; height: 50px; left: 50%; top: 0; margin-left: -25px; z-index:1001; background: url(images/arrow.png); background-size: contain; display: none;"></div>
 			<script src="plugin/leaflet/leaflet-src.js"></script>
 			<script src="plugin/leaflet/bouncemarker.js"></script>
 			<script type="text/javascript" src="js/markers.js"></script>
@@ -42,8 +42,8 @@
 			<script src="plugin/toolbar/toolbar.js"></script>
 			<script src="plugin/minimap/Control.MiniMap.js"></script>
 
-			<script src="plugin/spin/spin.min.js"></script>
-			<script src="plugin/spin/leaflet.spin.js"></script>
+			<!--script src="plugin/spin/spin.min.js"></script>
+			<script src="plugin/spin/leaflet.spin.js"></script-->
 
 			<script>
 			$(window).resize(function(){
@@ -161,31 +161,32 @@
 
 			function route_to_pos(lat, lon){
 				if(route){
+					$("#dir").fadeOut('fast');
 					map.removeLayer(route);
 					route = null;
 					target = null;
-					$("#dir").fadeOut('fast');
+					for(var i = 0; i < routing_markers.length; i++){
+						map.removeLayer(routing_markers[i]);
+					}
+					routing_markers = [];
+					routing_points = [];
 				}
-				map.spin(true, {top: 10, left: 70});
-				setTimeout(function(){
-					target = [lat, lon];
-					
-					var s_lat = my_location._latlng.lat;
-					var s_lon = my_location._latlng.lng;
-					var s_id = get_nearest_node(routing_type, s_lat, s_lon);
+				target = [lat, lon];
+				
+				var s_lat = my_location._latlng.lat;
+				var s_lon = my_location._latlng.lng;
+				var s_id = get_nearest_node(routing_type, s_lat, s_lon);
 
-					var d_lat = lat;
-					var d_lon = lon;
-					var d_id = get_nearest_node(routing_type, d_lat, d_lon);
+				var d_lat = lat;
+				var d_lon = lon;
+				var d_id = get_nearest_node(routing_type, d_lat, d_lon);
 
-					var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
-					var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
-					var res = do_search(routing_type, p1, p2);
-					res.push([s_lat, s_lon]);
-					res.unshift([d_lat, d_lon]);
-					route = L.polyline(res, {color: 'blue'}).addTo(map);
-					map.spin(false);
-				}, 300);
+				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
+				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
+				var res = do_search(routing_type, p1, p2);
+				res.push([s_lat, s_lon]);
+				res.unshift([d_lat, d_lon]);
+				route = L.polyline(res, {color: 'blue'}).addTo(map);
 			}
 
 			function gen_poi_popup(id, type, title, text, image_url){
@@ -476,13 +477,9 @@
 							if(routing_points.length == 2){
 								var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
 								var p2 = {id: routing_points[1], lat: json[routing_points[1]].lat, lon: json[routing_points[1]].lon};
-								map.spin(true,{top: 10, left: 70});
-								setTimeout(function(){
-									var res = do_search(routing_type, p1, p2);
-									route = L.polyline(res, {color: 'blue'}).addTo(map);
-									change_state("NONE");
-									map.spin(false);
-								}, 300);
+								var res = do_search(routing_type, p1, p2);
+								route = L.polyline(res, {color: 'blue'}).addTo(map);
+								change_state("NONE");
 							}
 						}
 					} 
@@ -597,7 +594,7 @@
 			</div>
 			<script>
 				function create_poi_list_item(id, lat, lon, title, text, type, img){
-					return "<table onclick=\"$('#manage_poi_window').fadeOut('fast'); map.setView(["+lat+", "+lon+"], map.getZoom());\" style=\"width: 200px; height: 80px; margin: 5px; display: inline-block; font-size: 10px; border: 1px solid #EEE; background-color: #FAFAFA; border-radius: 10px; padding: 5px; box-shadow: 1px 1px 4px 0px #AAA;\"><tr><td rowspan=3 style=\"width: 80px; height: 75px; background-color: #EEE; background-image: "+img+"; background-repeat: no-repeat; background-size: contain; background-position: center center;\"></td><td style=\"width: 120px\"><b>"+title+"</b></td></tr><tr><td>"+type+"</td></tr><tr style=\"height: 100%; vertical-align: top\"><td>"+text+"</td></tr></table>";
+					return "<table onclick=\"$('#manage_poi_window').fadeOut('fast'); map.setView(["+lat+", "+lon+"], map.getZoom()); lst_poi["+id+"].openPopup();\" style=\"width: 200px; height: 80px; margin: 5px; display: inline-block; font-size: 10px; border: 1px solid #EEE; background-color: #FAFAFA; border-radius: 10px; padding: 5px; box-shadow: 1px 1px 4px 0px #AAA;\"><tr><td rowspan=3 style=\"width: 80px; height: 75px; background-color: #EEE; background-image: "+img+"; background-repeat: no-repeat; background-size: contain; background-position: center center;\"></td><td style=\"width: 120px\"><b>"+title+"</b></td></tr><tr><td>"+type+"</td></tr><tr style=\"height: 100%; vertical-align: top\"><td>"+text+"</td></tr></table>";
 				}
 				
 				function load_poi_list_items(q){
