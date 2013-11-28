@@ -51,19 +51,6 @@
     <access origin="http://127.0.0.1*" />
 	<!--plugin name="Geolocation" value="CDVLocation" />
 	<plugin name="Camera" value="CDVCamera" /-->
-
-<feature name="Compass">
-    <param name="ios-package" value="CDVLocation" />
-</feature>
-<feature name="Compass">
-    <param name="android-package" value="org.apache.cordova.CompassListener" />
-</feature>
-
-<feature name="Geolocation">
-    <param name="ios-package" value="CDVLocation" />
-</feature>
-<feature name="Geolocation">
-    <param name="android-package" value="org.apache.cordova.GeoBroker" />
-</feature>
-
+<feature name="http://api.phonegap.com/1.0/geolocation"/>
+	
 </widget>
