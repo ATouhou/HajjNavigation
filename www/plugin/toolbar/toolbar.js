@@ -10,18 +10,26 @@ L.Control.Toolbar = L.Control.extend({
 
 		this._btn_1  = this._createButton(
 		        'My Location', 'My Location',  'leaflet-control-toolbar',  container, this._btn_1_click,  this);
+		this._btn_5  = this._createButton(
+		        'My View', 'My View',  'leaflet-control-toolbar',  container, this._btn_5_click,  this);
 		this._btn_2 = this._createButton(
 		        'POIs', 'Managing POIs', 'leaflet-control-toolbar', container, this._btn_2_click, this);
 		this._btn_3 = this._createButton(
 		        'Routing', 'Routing', 'leaflet-control-toolbar', container, this._btn_3_click, this);
 		this._btn_4 = this._createButton(
 		        'Drive', 'Drive', 'leaflet-control-toolbar', container, this._btn_4_click, this);
+		this._btn_6 = this._createButton(
+		        'Follow', 'Follow', 'leaflet-control-toolbar', container, this._btn_6_click, this);
 
 		return container;
 	},
 
 	_btn_1_click: function (e) {
 		get_my_location();
+	},
+
+	_btn_5_click: function (e) {
+		get_my_dir();
 	},
 
 	_btn_2_click: function (e) {
@@ -52,6 +60,17 @@ L.Control.Toolbar = L.Control.extend({
 		else{
 			routing_type = "drive";
 			this._btn_4.innerHTML = this._btn_4.title = "Drive";
+		}
+	},
+
+	_btn_6_click: function (e) {
+		if(follow){
+			follow = false;
+			this._btn_6.innerHTML = this._btn_6.title = "Follow";
+		}
+		else{
+			follow = true;
+			this._btn_6.innerHTML = this._btn_6.title = "Unfollow";
 		}
 	},
 	
