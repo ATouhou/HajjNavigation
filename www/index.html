@@ -114,7 +114,46 @@
 			
 			function get_my_location(){
 				if(my_location_watcher == null){
-					my_location_watcher = window.setInterval(function(){
+					my_location_watcher = navigator.geolocation.watchPosition(function(position){
+							if(my_location == null){
+								var options = {};
+								options.icon = L.icon({
+									iconUrl: 'images/cur_pos.png',
+									iconSize:     [16, 16], // size of the icon
+									iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
+								});
+								my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
+								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
+							}else{
+								var mylat = 0.1 * my_location.getLatLng().lat + 0.9 * position.coords.latitude;
+								var mylng = 0.1 * my_location.getLatLng().lng + 0.9 * position.coords.longitude;
+
+								my_location.setLatLng(new L.LatLng(mylat, mylng));
+							}
+							if(my_dir_watcher)
+								L.circle(my_location.getLatLng(), 100).setDirection(my_dir, 45).addTo(map);
+							
+							if(follow){
+								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
+							}
+							
+							if(target != null){
+								dir = Math.atan2(target[1] - my_location.getLatLng().lng, target[0] - my_location.getLatLng().lat) * 180 / 3.14;
+								set_dir(dir);
+							}
+							
+						}, function(error){
+							change_desc("Arsheet Company");
+							//alert("Error retriving location");
+						},
+						{
+							enableHighAccuracy : true,
+							maximumAge: 4000,
+							timeout: 5000
+						});
+
+					
+					/*my_location_watcher = window.setInterval(function(){
 						navigator.geolocation.getCurrentPosition(function(position){
 							//change_desc("Position is: " + position.coords.latitude + ", " + position.coords.longitude);
 
@@ -155,10 +194,11 @@
 							timeout: 5000
 						});
 												
-					}, 1000);
+					}, 1000);*/
 				}
 				else{
-					clearInterval(my_location_watcher);
+					//clearInterval(my_location_watcher);
+					navigator.geolocation.clearWatch(my_location_watcher);
 					my_location_watcher = null;
 				}
 			}
