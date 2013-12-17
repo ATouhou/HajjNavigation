@@ -28,6 +28,7 @@
 			<div id="dir" style="position: fixed; width: 50px; height: 50px; left: 50%; top: 0; margin-left: -25px; z-index:1001; background: url(images/arrow.png); background-size: contain; display: none;"></div>
 			<script src="plugin/leaflet/leaflet-src.js"></script>
 			<script src="plugin/leaflet/bouncemarker.js"></script>
+			<script src="plugin/leaflet/Marker.Rotate.js"></script>
 			<script type="text/javascript" src="js/markers.js"></script>
 		
 			<!--script src="plugin/routing/L.Routing.js"></script>
@@ -86,119 +87,139 @@
 					my_view_area.setLatLng(my_location.getLatLng()).setDirection(my_dir, 45);	
 				}
 			}
+			//var heading = 0;
+			function read_dir(){
+				navigator.compass.getCurrentHeading(function(heading){
+
+					if(my_dir == null)
+						my_dir = heading;
+					else
+						my_dir = 0.1 * my_dir + 0.9 * heading;
+
+					show_my_view_area();
+
+					my_dir_watcher = window.setTimeout(read_dir, 1000);												
+				}, function(error){
+					//change_desc("Arsheet Company");
+					my_dir_watcher = window.setTimeout(read_dir, 1000);												
+				});
+			}
 			
 			function get_my_dir(){
 				if(my_dir_watcher == null){
-					my_dir_watcher = window.setInterval(function(){
-						navigator.compass.getCurrentHeading(function(heading){
-
-							if(my_dir == null)
-								my_dir = heading;
-							else
-								my_dir = 0.1 * my_dir + 0.9 * heading;
-
-							if(my_dir_watcher)
-								show_my_view_area();
-														
-						}, function(error){
-							change_desc("Arsheet Company");
-						});
-												
-					}, 200);
+					my_dir_watcher = window.setTimeout(read_dir, 1000);
 				}
 				else{
-					clearInterval(my_dir_watcher);
+					//clearInterval(my_dir_watcher);
+					map.removeLayer(my_view_area);
 					my_dir_watcher = null;
 				}
+			}
+
+			/*position = {"coords": 
+						{"heading": 0,
+						"latitude": 36.3183,
+						"longitude": 59.5260
+						}
+						}*/
+					
+			
+			function read_location(){
+				navigator.geolocation.getCurrentPosition(function(position){
+					var heading = position.coords.heading;
+					
+					var pos_icon = {
+							iconUrl: 'images/cur_pos.png',
+							iconSize:     [16, 16], // size of the icon
+							iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
+						};
+					
+					var nav_icon = {
+							iconUrl: 'images/cur_pos_nav.png',
+							iconSize:     [16, 16], // size of the icon
+							iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
+						};					
+					
+					if(my_location == null){
+						var options = {};
+						options.icon = L.icon(pos_icon);
+						my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
+						map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
+					}else{
+						var mylat = 0.1 * my_location.getLatLng().lat + 0.9 * position.coords.latitude;
+						var mylng = 0.1 * my_location.getLatLng().lng + 0.9 * position.coords.longitude;
+
+						my_location.setLatLng(new L.LatLng(mylat, mylng));
+					}
+					if(my_dir_watcher)
+						show_my_view_area();
+					
+					if(follow){
+						map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
+						if(heading != -1){
+							my_location.setIconAngle(heading);
+							my_location.setIcon(L.icon(nav_icon));
+						}else{
+							my_location.setIconAngle(0);
+							my_location.setIcon(L.icon(pos_icon));						
+						}
+						
+					}
+					
+					if(target != null){
+						dir = Math.atan2(target[1] - my_location.getLatLng().lng, target[0] - my_location.getLatLng().lat) * 180 / 3.14;
+						set_dir(dir);
+						
+						
+						var min_dist = 0;
+						var min_i = 1;
+						for(i=1;i<route._latlngs.length;i++){
+							var dist = findDistanceToSegment(route._latlngs[i-1].lat, route._latlngs[i-1].lng, route._latlngs[i].lat, route._latlngs[i].lng, my_location.getLatLng().lat, my_location.getLatLng().lng);
+							if(i==1 || dist < min_dist){
+								min_dist = dist;
+								min_i = i;
+							}
+						}
+						if(min_i > 1){
+							var t1 = 270-Math.atan2(route._latlngs[min_i].lat - route._latlngs[min_i - 1].lat, route._latlngs[min_i].lng - route._latlngs[min_i - 1].lng) * 180.0 / Math.PI;
+							var t2 = 270-Math.atan2(route._latlngs[min_i - 1].lat - route._latlngs[min_i - 2].lat, route._latlngs[min_i - 1].lng - route._latlngs[min_i - 2].lng) * 180.0 / Math.PI;
+							
+							var t = (t2 - heading);// - heading;
+							while(t>180)  t-=360;
+							while(t<-180) t+=360;
+							//console.log(t);
+							var d = my_location.getLatLng().distanceTo(route._latlngs[min_i - 1]);
+							if(d < 100){
+								//console.log(t);
+								if(t > 45)
+									change_desc("Turn Right");
+								else if(t < -45)
+									change_desc("Turn Left");
+								else
+									change_desc("Go Forward");
+							}else{
+								change_desc("Go Forward");
+							}
+						}
+					}
+					my_location_watcher = window.setTimeout(read_location, 1000);
+				}, function(error){
+					change_desc("Arsheet Company");
+					my_location_watcher = window.setTimeout(read_location, 1000);
+				},
+				{
+					enableHighAccuracy : true,
+					maximumAge: 4000,
+					timeout: 5000
+				});
 			}
 			
 			function get_my_location(){
 				if(my_location_watcher == null){
-					my_location_watcher = navigator.geolocation.watchPosition(function(position){
-							if(my_location == null){
-								var options = {};
-								options.icon = L.icon({
-									iconUrl: 'images/cur_pos.png',
-									iconSize:     [16, 16], // size of the icon
-									iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
-								});
-								my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
-								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
-							}else{
-								var mylat = 0.1 * my_location.getLatLng().lat + 0.9 * position.coords.latitude;
-								var mylng = 0.1 * my_location.getLatLng().lng + 0.9 * position.coords.longitude;
-
-								my_location.setLatLng(new L.LatLng(mylat, mylng));
-							}
-							if(my_dir_watcher)
-								L.circle(my_location.getLatLng(), 100).setDirection(my_dir, 45).addTo(map);
-							
-							if(follow){
-								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
-							}
-							
-							if(target != null){
-								dir = Math.atan2(target[1] - my_location.getLatLng().lng, target[0] - my_location.getLatLng().lat) * 180 / 3.14;
-								set_dir(dir);
-							}
-							
-						}, function(error){
-							change_desc("Arsheet Company");
-							//alert("Error retriving location");
-						},
-						{
-							enableHighAccuracy : true,
-							maximumAge: 4000,
-							timeout: 5000
-						});
-
-					
-					/*my_location_watcher = window.setInterval(function(){
-						navigator.geolocation.getCurrentPosition(function(position){
-							//change_desc("Position is: " + position.coords.latitude + ", " + position.coords.longitude);
-
-							if(my_location == null){
-								var options = {};
-								options.icon = L.icon({
-									iconUrl: 'images/cur_pos.png',
-									iconSize:     [16, 16], // size of the icon
-									iconAnchor:   [8, 8], // point of the icon which will correspond to marker's location
-								});
-								my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
-								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
-							}else{
-								var mylat = 0.1 * my_location.getLatLng().lat + 0.9 * position.coords.latitude;
-								var mylng = 0.1 * my_location.getLatLng().lng + 0.9 * position.coords.longitude;
-
-								my_location.setLatLng(new L.LatLng(mylat, mylng));
-							}
-							if(my_dir_watcher)
-								L.circle(my_location.getLatLng(), 100).setDirection(my_dir, 45).addTo(map);
-							
-							if(follow){
-								map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
-							}
-							
-							if(target != null){
-								dir = Math.atan2(target[1] - my_location.getLatLng().lng, target[0] - my_location.getLatLng().lat) * 180 / 3.14;
-								set_dir(dir);
-							}
-							
-						}, function(error){
-							change_desc("Arsheet Company");
-							//alert("Error retriving location");
-						},
-						{
-							enableHighAccuracy : true,
-							maximumAge: 4000,
-							timeout: 5000
-						});
-												
-					}, 1000);*/
+					my_location_watcher = window.setTimeout(read_location, 1000);
 				}
 				else{
 					//clearInterval(my_location_watcher);
-					navigator.geolocation.clearWatch(my_location_watcher);
 					my_location_watcher = null;
 				}
 			}
@@ -643,7 +664,7 @@
 					navigator.camera.getPicture(function(imgData){
 						$("#POI_img_edit").css('background-image', 'url(data:image/jpeg;base64,' + imgData + ')');
 					}, function(error){
-						alert('Failed: ' + error);
+						//alert('Failed: ' + error);
 					}, options);
 				});
 			});
