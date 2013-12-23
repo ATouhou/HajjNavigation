@@ -50,7 +50,6 @@
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
     <access origin="http://127.0.0.1*" />
 	<plugin name="Geolocation" value="CDVLocation" />
-	<gap:plugin name="Compass" value="org.apache.cordova.core.CompassListener" />
 	<plugin name="Camera" value="CDVCamera" />
-
+    <plugin name="Compass" value="org.apache.cordova.CompassListener"/>
 </widget>

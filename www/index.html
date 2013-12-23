@@ -92,15 +92,15 @@
 				navigator.compass.getCurrentHeading(function(heading){
 
 					if(my_dir == null)
-						my_dir = heading;
+						my_dir = heading.magneticHeading;
 					else
-						my_dir = 0.1 * my_dir + 0.9 * heading;
+						my_dir = 0.8 * my_dir + 0.2 * heading.magneticHeading;
 
 					show_my_view_area();
 
 					my_dir_watcher = window.setTimeout(read_dir, 1000);												
 				}, function(error){
-					//change_desc("Arsheet Company");
+					change_desc("Arsheet Company");
 					my_dir_watcher = window.setTimeout(read_dir, 1000);												
 				});
 			}
@@ -146,8 +146,8 @@
 						my_location = L.marker(new L.LatLng(position.coords.latitude, position.coords.longitude), options).addTo(map);
 						map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
 					}else{
-						var mylat = 0.1 * my_location.getLatLng().lat + 0.9 * position.coords.latitude;
-						var mylng = 0.1 * my_location.getLatLng().lng + 0.9 * position.coords.longitude;
+						var mylat = 0.8 * my_location.getLatLng().lat + 0.2 * position.coords.latitude;
+						var mylng = 0.8 * my_location.getLatLng().lng + 0.2 * position.coords.longitude;
 
 						my_location.setLatLng(new L.LatLng(mylat, mylng));
 					}
@@ -220,7 +220,8 @@
 				}
 				else{
 					//clearInterval(my_location_watcher);
-					my_location_watcher = null;
+					//my_location_watcher = null;
+					map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
 				}
 			}
 			
