@@ -107,11 +107,25 @@
 			
 			function get_my_dir(){
 				if(my_dir_watcher == null){
-					my_dir_watcher = window.setTimeout(read_dir, 1000);
+					//my_dir_watcher = window.setTimeout(read_dir, 1000);
+					my_dir_watcher = navigator.compass.watchHeading(function(heading){
+						if(my_dir == null)
+							my_dir = heading.magneticHeading;
+						else
+							my_dir = 0.8 * my_dir + 0.2 * heading.magneticHeading;
+						show_my_view_area();
+					}, function(error){
+						change_desc("Arsheet Company");
+						my_dir_watcher = window.setTimeout(read_dir, 1000);												
+					}, {
+						frequency: 100,
+						filter: 10
+					});
 				}
 				else{
 					//clearInterval(my_dir_watcher);
 					map.removeLayer(my_view_area);
+					navigator.compass.clearWatch(my_dir_watcher);
 					my_dir_watcher = null;
 				}
 			}
