@@ -73,5 +73,5 @@ gen_path = function(top){
 	}
 	//if(parent[t_id] != undefined)
 	//	path.push([parent[t_id].lat, parent[t_id].lon]);
-	console.log(path);
+	//console.log(path);
 }
