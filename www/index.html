@@ -137,7 +137,7 @@
 						}
 						}*/
 					
-			
+						
 			function read_location(){
 				navigator.geolocation.getCurrentPosition(function(position){
 					var heading = position.coords.heading;
@@ -183,17 +183,22 @@
 					if(target != null){
 						dir = Math.atan2(target[1] - my_location.getLatLng().lng, target[0] - my_location.getLatLng().lat) * 180 / 3.14;
 						set_dir(dir);
-						
-						
+					}
+					if(route != null){
 						var min_dist = 0;
 						var min_i = 1;
-						for(i=1;i<route._latlngs.length;i++){
-							var dist = findDistanceToSegment(route._latlngs[i-1].lat, route._latlngs[i-1].lng, route._latlngs[i].lat, route._latlngs[i].lng, my_location.getLatLng().lat, my_location.getLatLng().lng);
-							if(i==1 || dist < min_dist){
+						for(i=1;i<my_route_points.length;i++){
+							var dist = findDistanceToSegment(my_route_points[i-1].lat, my_route_points[i-1].lng, my_route_points[i].lat, my_route_points[i].lng, my_location.getLatLng().lat, my_location.getLatLng().lng);
+							if(i==1 || dist <= min_dist){
 								min_dist = dist;
 								min_i = i;
 							}
 						}
+						var r = [];
+						for(var i=0; i<=min_i; i++){
+							r.push(my_route_points[i]);
+						}
+						route.setLatLngs(r);
 						if(min_i > 1){
 							var t1 = 270-Math.atan2(route._latlngs[min_i].lat - route._latlngs[min_i - 1].lat, route._latlngs[min_i].lng - route._latlngs[min_i - 1].lng) * 180.0 / Math.PI;
 							var t2 = 270-Math.atan2(route._latlngs[min_i - 1].lat - route._latlngs[min_i - 2].lat, route._latlngs[min_i - 1].lng - route._latlngs[min_i - 2].lng) * 180.0 / Math.PI;
@@ -215,6 +220,21 @@
 								change_desc("Go Forward");
 							}
 						}
+
+						if(my_location.getLatLng().distanceTo(my_route_points[0]) < 100){
+							change_desc("Destination Reached");
+							unroute();
+						}
+						else if(min_i < route._latlngs.length - 1)
+							route.spliceLatLngs(route._latlngs.length - 1);
+						else if(min_i < route._latlngs.length){
+							route._latlngs[route._latlngs.length-1]=my_location.getLatLng();
+							route.redraw();
+						}
+							//route._latlngs.pop();
+						if(min_dist > 0.0002)
+							route_to_pos(my_route_points[0].lat, my_route_points[0].lng);
+						//console.log(min_dist);
 					}
 					my_location_watcher = window.setTimeout(read_location, 1000);
 				}, function(error){
@@ -281,17 +301,21 @@
 				route_to_pos(lat, lon);
 			}
 
+			function unroute(){
+				$("#dir").fadeOut('fast');
+				map.removeLayer(route);
+				route = null;
+				target = null;
+				for(var i = 0; i < routing_markers.length; i++){
+					map.removeLayer(routing_markers[i]);
+				}
+				routing_markers = [];
+				routing_points = [];
+			}
+			
 			function route_to_pos(lat, lon){
 				if(route){
-					$("#dir").fadeOut('fast');
-					map.removeLayer(route);
-					route = null;
-					target = null;
-					for(var i = 0; i < routing_markers.length; i++){
-						map.removeLayer(routing_markers[i]);
-					}
-					routing_markers = [];
-					routing_points = [];
+					unroute();
 				}
 				target = [lat, lon];
 				
@@ -306,9 +330,12 @@
 				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
 				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
 				var res = do_search(routing_type, p1, p2);
-				res.push([s_lat, s_lon]);
-				res.unshift([d_lat, d_lon]);
-				route = L.polyline(res, {color: 'blue'}).addTo(map);
+				if(res){
+					res.push([s_lat, s_lon]);
+					res.unshift([d_lat, d_lon]);
+					route = L.polyline(res, {color: 'blue'}).addTo(map);
+					my_route_points = route._latlngs;
+				}
 			}
 
 			function gen_poi_popup(id, type, title, text, image_url){
@@ -368,12 +395,15 @@
 				return Math.sqrt((p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1]));
 			}
 			
-			function findDistanceToSegment(x1, y1, x2, y2, pointX, pointY)
+			function findDistanceToSegment(x1, y1, x2, y2, pointX, pointY/*, col*/)
 			{
 				var diffX = x2 - x1;
 				var diffY = y2 - y1;
 				if ((diffX == 0) && (diffY == 0))
 				{
+					/*col.x = x1;
+					col.y = y1;*/
+					
 					diffX = pointX - x1;
 					diffY = pointY - y1;
 					return Math.sqrt(diffX * diffX + diffY * diffY);
@@ -382,18 +412,27 @@
 				if (t < 0)
 				{
 					//point is nearest to the first point i.e x1 and y1
+					/*col.x = x1;
+					col.y = y1;*/
+
 					diffX = pointX - x1;
 					diffY = pointY - y1;
 				}
 				else if (t > 1)
 				{
 					//point is nearest to the end point i.e x2 and y2
+					/*col.x = x2;
+					col.y = y2;*/
+
 					diffX = pointX - x2;
 					diffY = pointY - y2;
 				}
 				else
 				{
 					//if perpendicular line intersect the line segment.
+					/*col.x = x1 + t * diffX;
+					col.y = y1 + t * diffY;*/
+
 					diffX = pointX - (x1 + t * diffX);
 					diffY = pointY - (y1 + t * diffY);
 				}
@@ -539,6 +578,7 @@
 			var routing_markers = [];
 			var map, minmap, toolbar, poitoolbar;
 			var route = null;
+			var my_route_points = null;
 			var target = null;
 
 			function set_dir(degrees){
@@ -559,6 +599,7 @@
 				$("#map").height($(window).height());
 				map = L.map('map').setView([21.4236, 39.8269], 12);
 				//map = L.map('map').setView([36.3183, 59.5260], 12);
+				//map = L.map('map').setView([5.37, 100.30], 12);
 				
 				//my_location = L.Marker(new L.LatLng(21.4236, 39.8269)).addTo(map);
 				
@@ -605,14 +646,15 @@
 							
 							if(routing_points.length == 2){
 								if(route){
-									$("#dir").fadeOut('fast');
+									/*$("#dir").fadeOut('fast');
 									map.removeLayer(route);
 									route = null;
 									for(var i = 0; i < routing_markers.length; i++){
 										map.removeLayer(routing_markers[i]);
 									}
 									routing_markers = [];
-									routing_points = [];
+									routing_points = [];*/
+									unroute();
 								}
 
 								var p1 = {id: routing_points[0], lat: json[routing_points[0]].lat, lon: json[routing_points[0]].lon};
