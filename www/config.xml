@@ -52,5 +52,4 @@
 	<plugin name="Geolocation" value="CDVLocation" />
 	<plugin name="Camera" value="CDVCamera" />
     <plugin name="Compass" value="org.apache.cordova.CompassListener"/>
-	<gap:plugin name="us.rcs.phonegap.plugins.screendim.screendim.plugin" />
 </widget>

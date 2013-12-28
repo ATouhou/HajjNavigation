@@ -21,8 +21,6 @@
         <script type="text/javascript" src="js/init_db.js"></script>
         <script type="text/javascript" src="js/hammer.min.js"></script>
         <script type="text/javascript" src="phonegap.js"></script>
-        <script type="text/javascript" src="cordova.js"></script>
-		<script src="screendim.js"></script>
 	</head>
 	<body>
 		<div id="screen">
@@ -631,10 +629,6 @@
 			}
 			
 			$(document).ready(function(){
-				try{
-					cordova.screenDim.disable();
-				}catch(ex){}
-				
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
 					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300), [image] text)");
