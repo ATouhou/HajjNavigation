@@ -39,6 +39,7 @@ L.Control.Toolbar = L.Control.extend({
 	},
 
 	_btn_3_click: function (e) {
+		removeTarget();
 		if(route){
 			/*$("#dir").fadeOut('fast');
 			map.removeLayer(route);
