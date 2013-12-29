@@ -131,22 +131,24 @@
 				}
 				else{
 					//clearInterval(my_dir_watcher);
-					map.removeLayer(my_view_area);
 					navigator.compass.clearWatch(my_dir_watcher);
 					my_dir_watcher = null;
+					map.removeLayer(my_view_area);
+					my_view_area = null;
 				}
 			}
 
-			position = {"coords": 
+			/*position = {"coords": 
 						{"heading": 0,
 						"latitude": 5.35508,
 						"longitude": 100.30108
 						}
-						};
+						};*/
 					
 						
 			function read_location(){
 				//navigator.geolocation.getCurrentPosition(function(position){
+				return navigator.geolocation.watchPosition(function(position){
 					$(toolbar._btn_1).css({"background-color": "green", "color": "white"});
 					var heading = position.coords.heading;
 					
@@ -244,22 +246,23 @@
 							route_to_pos(my_route_points[0].lat, my_route_points[0].lng);
 						//console.log(min_dist);
 					}
-					my_location_watcher = window.setTimeout(read_location, 1000);
-				/*}, function(error){
+					//my_location_watcher = window.setTimeout(read_location, 1000);
+				}, function(error){
 					$(toolbar._btn_1).css({"background-color": "red", "color": "white"});
 					change_desc("GPS Lost");
-					my_location_watcher = window.setTimeout(read_location, 1000);
+					//my_location_watcher = window.setTimeout(read_location, 1000);
 				},
 				{
 					enableHighAccuracy : true,
 					maximumAge: 4000,
 					timeout: 5000
-				});*/
+				});
 			}
 			
 			function get_my_location(){
 				if(my_location_watcher == null){
-					my_location_watcher = window.setTimeout(read_location, 1000);
+					//my_location_watcher = window.setTimeout(read_location, 1000);
+					my_location_watcher = read_location();
 				}
 				else{
 					//clearInterval(my_location_watcher);
