@@ -643,6 +643,10 @@
 			}
 			
 			$(document).ready(function(){
+				try{
+					window.plugins.powerManagement.acquire();
+				}catch(ex){}
+
 				db.transaction(function(tx){
 					//tx.executeSql("DROP TABLE POI");
 					tx.executeSql("CREATE TABLE IF NOT EXISTS POI ([id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, [lat] REAL, [lon] REAL, [type] NVARCHAR(50), [title] NVARCHAR(50), [text] NVARCHAR(300), [image] text)");

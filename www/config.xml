@@ -52,5 +52,5 @@
 	<plugin name="Geolocation" value="CDVLocation" />
 	<plugin name="Camera" value="CDVCamera" />
     <plugin name="Compass" value="org.apache.cordova.CompassListener"/>
-	<gap:plugin name="com.phonegap.plugins.barcodescanner" />
+	<gap:plugin name="com.simplec.plugins.powermanagement" />
 </widget>
