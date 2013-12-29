@@ -137,16 +137,16 @@
 				}
 			}
 
-			/*position = {"coords": 
+			position = {"coords": 
 						{"heading": 0,
 						"latitude": 5.35508,
 						"longitude": 100.30108
 						}
-						};*/
+						};
 					
 						
 			function read_location(){
-				navigator.geolocation.getCurrentPosition(function(position){
+				//navigator.geolocation.getCurrentPosition(function(position){
 					$(toolbar._btn_1).css({"background-color": "green", "color": "white"});
 					var heading = position.coords.heading;
 					
@@ -229,7 +229,7 @@
 							}
 						}
 
-						if(my_location.getLatLng().distanceTo(my_route_points[0]) < 100){
+						if(my_location.getLatLng().distanceTo(my_route_points[0]) < 50){
 							change_desc("Destination Reached");
 							unroute();
 						}
@@ -245,7 +245,7 @@
 						//console.log(min_dist);
 					}
 					my_location_watcher = window.setTimeout(read_location, 1000);
-				}, function(error){
+				/*}, function(error){
 					$(toolbar._btn_1).css({"background-color": "red", "color": "white"});
 					change_desc("GPS Lost");
 					my_location_watcher = window.setTimeout(read_location, 1000);
@@ -254,7 +254,7 @@
 					enableHighAccuracy : true,
 					maximumAge: 4000,
 					timeout: 5000
-				});
+				});*/
 			}
 			
 			function get_my_location(){
@@ -362,17 +362,25 @@
 				if(my_location == null) return;
 				target = [lat, lon];
 				
-				var s_lat = my_location._latlng.lat;
-				var s_lon = my_location._latlng.lng;
-				var s_id = get_nearest_node(routing_type, s_lat, s_lon);
+				thr = -1;
+				var i = 0;
+				do{
+					var s_lat = my_location._latlng.lat;
+					var s_lon = my_location._latlng.lng;
+					var s_node = get_nearest_node(routing_type, s_lat, s_lon, thr);
+					var s_id = s_node[0];
+					thr = s_node[1];
+					
+					var d_lat = lat;
+					var d_lon = lon;
+					var d_id = get_nearest_node(routing_type, d_lat, d_lon)[0];
 
-				var d_lat = lat;
-				var d_lon = lon;
-				var d_id = get_nearest_node(routing_type, d_lat, d_lon);
-
-				var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
-				var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
-				var res = do_search(routing_type, p1, p2);
+					var p1 = {id: s_id, lat: json[s_id].lat, lon: json[s_id].lon};
+					var p2 = {id: d_id, lat: json[d_id].lat, lon: json[d_id].lon};
+					var res = do_search(routing_type, p1, p2);
+					//console.log(thr);
+					i++;
+				} while(!res && i < 100);
 				if(res){
 					res.push([s_lat, s_lon]);
 					res.unshift([d_lat, d_lon]);
@@ -484,7 +492,9 @@
 				return Math.sqrt(diffX * diffX + diffY * diffY);
 			}
 
-			function get_nearest_node(type, lat, lon){
+			function get_nearest_node(type, lat, lon, thr){
+				thr = typeof thr !== 'undefined' ? thr : 0;
+
 				var min_id = -1;
 				var min_dist = 999;
 				$.each(json, function(id, nodes){
@@ -510,7 +520,7 @@
 
 						var d = findDistanceToSegment(p1[0], p1[1], p2[0], p2[1], p[0], p[1]);
 						
-						if(min_id == -1 || d < min_dist){
+						if(d > thr && (min_id == -1 || d < min_dist)){
 							if(get_distance(p, p1) < get_distance(p, p2)){
 								min_id = id;
 								min_dist = d;
@@ -522,7 +532,7 @@
 						}
 					}
 				});
-				return min_id;
+				return [min_id, min_dist];
 			}
 
 			var dd_select_by_value = function(id, value) {
@@ -642,7 +652,7 @@
 				$("#map").height($(window).height());
 				//map = L.map('map').setView([21.4236, 39.8269], 12);
 				//map = L.map('map').setView([36.3183, 59.5260], 12);
-				map = L.map('map').setView([5.35482, 100.30121], 14);
+				map = L.map('map').setView([5.35482, 100.30121], 16);
 				
 				//my_location = L.Marker(new L.LatLng(21.4236, 39.8269)).addTo(map);
 				
@@ -682,7 +692,7 @@
 							//routing_points.push(node_id);
 							
 							routing_markers.push(L.marker([e.latlng.lat, e.latlng.lng]).addTo(map));
-							var node_id = get_nearest_node(routing_type, e.latlng.lat, e.latlng.lng);
+							var node_id = get_nearest_node(routing_type, e.latlng.lat, e.latlng.lng)[0];
 							routing_points.push(node_id);
 							
 							
