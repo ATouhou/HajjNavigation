@@ -108,6 +108,10 @@
 				});
 			}
 			
+			/*var heading = {
+				"magneticHeading": 10
+			};*/
+			
 			function get_my_dir(){
 				if(my_dir_watcher == null){
 					//my_dir_watcher = window.setTimeout(read_dir, 1000);
@@ -135,8 +139,8 @@
 
 			/*position = {"coords": 
 						{"heading": 0,
-						"latitude": 5.37,
-						"longitude": 100.30
+						"latitude": 5.35508,
+						"longitude": 100.30108
 						}
 						};*/
 					
@@ -243,7 +247,7 @@
 					my_location_watcher = window.setTimeout(read_location, 1000);
 				}, function(error){
 					$(toolbar._btn_1).css({"background-color": "red", "color": "white"});
-					change_desc("Map");
+					change_desc("GPS Lost");
 					my_location_watcher = window.setTimeout(read_location, 1000);
 				},
 				{
@@ -638,7 +642,7 @@
 				$("#map").height($(window).height());
 				//map = L.map('map').setView([21.4236, 39.8269], 12);
 				//map = L.map('map').setView([36.3183, 59.5260], 12);
-				map = L.map('map').setView([5.37, 100.30], 14);
+				map = L.map('map').setView([5.35482, 100.30121], 14);
 				
 				//my_location = L.Marker(new L.LatLng(21.4236, 39.8269)).addTo(map);
 				
