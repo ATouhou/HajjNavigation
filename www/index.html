@@ -21,6 +21,7 @@
         <script type="text/javascript" src="js/init_db.js"></script>
         <script type="text/javascript" src="js/hammer.min.js"></script>
         <script type="text/javascript" src="phonegap.js"></script>
+        <!--script type="text/javascript" src="cordova-2.0.0.js"></script-->
 	</head>
 	<body>
 		<div id="screen">
@@ -84,53 +85,30 @@
 			
 			function show_my_view_area(){
 				if(my_location == null) return;
-				if(my_view_area == null)
+				if(my_view_area == null){
 					my_view_area = L.circle(my_location.getLatLng(), 100).setDirection(my_dir, 45).addTo(map);
+				}
 				else{
 					my_view_area.setLatLng(my_location.getLatLng()).setDirection(my_dir, 45);	
 				}
-			}
-			//var heading = 0;
-			function read_dir(){
-				navigator.compass.getCurrentHeading(function(heading){
-
-					if(my_dir == null)
-						my_dir = heading.magneticHeading;
-					else
-						my_dir = 0.8 * my_dir + 0.2 * heading.magneticHeading;
-
-					show_my_view_area();
-
-					my_dir_watcher = window.setTimeout(read_dir, 1000);												
-				}, function(error){
-					change_desc("Map");
-					my_dir_watcher = window.setTimeout(read_dir, 1000);												
-				});
-			}
-			
+			}			
 			/*var heading = {
 				"magneticHeading": 10
 			};*/
 			
 			function get_my_dir(){
 				if(my_dir_watcher == null){
-					//my_dir_watcher = window.setTimeout(read_dir, 1000);
 					my_dir_watcher = navigator.compass.watchHeading(function(heading){
-						//if(my_dir == null)
-							my_dir = heading.magneticHeading;
-						//else
-						//	my_dir = 0.8 * my_dir + 0.2 * heading.magneticHeading;
+						my_dir = heading.magneticHeading;
 						show_my_view_area();
 					}, function(error){
 						change_desc("Map");
-						//my_dir_watcher = window.setTimeout(read_dir, 1000);												
 					}, {
 						frequency: 100,
 						filter: 1
 					});
 				}
 				else{
-					//clearInterval(my_dir_watcher);
 					navigator.compass.clearWatch(my_dir_watcher);
 					my_dir_watcher = null;
 					map.removeLayer(my_view_area);
@@ -249,7 +227,7 @@
 					//my_location_watcher = window.setTimeout(read_location, 1000);
 				}, function(error){
 					$(toolbar._btn_1).css({"background-color": "red", "color": "white"});
-					change_desc("GPS Lost");
+						change_desc("GPS Lost");
 					//my_location_watcher = window.setTimeout(read_location, 1000);
 				},
 				{
@@ -264,7 +242,7 @@
 					//my_location_watcher = window.setTimeout(read_location, 1000);
 					my_location_watcher = read_location();
 				}
-				else{
+				else if(my_location){
 					//clearInterval(my_location_watcher);
 					//my_location_watcher = null;
 					map.setView([my_location._latlng.lat, my_location._latlng.lng], map.getZoom());
