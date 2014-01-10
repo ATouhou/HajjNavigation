@@ -21,6 +21,7 @@
         <script type="text/javascript" src="js/init_db.js"></script>
         <script type="text/javascript" src="js/hammer.min.js"></script>
         <script type="text/javascript" src="phonegap.js"></script>
+        <script type="text/javascript" src="plugins/com.simplec.plugins.powermanagement/www/PowerManagement.js"></script>
         <!--script type="text/javascript" src="cordova-2.0.0.js"></script-->
 	</head>
 	<body>
@@ -729,11 +730,15 @@
 						change_state("NONE");
 					}
 					else{
+						here_popup
+							.setLatLng(e.latlng)
+							.setContent(e.latlng.toString() + "<br />" + "<input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_new_pos(" + e.latlng.lat + ", " + e.latlng.lng + ")' />")
+							.openOn(map);
 					}
 				}
 
 				map.on('click', onMapClick);
-				Hammer(document.getElementById('map')).on('hold', function(e){
+				/*Hammer(document.getElementById('map')).on('hold', function(e){
 					var containerPoint = map.mouseEventToContainerPoint(e.gesture.center),
 						layerPoint = map.containerPointToLayerPoint(containerPoint),
 						latlng = map.layerPointToLatLng(layerPoint);
@@ -742,7 +747,7 @@
 						.setLatLng(latlng)
 						.setContent(latlng.toString() + "<br />" + "<input type='button' style='width: 100%; height: 100%; font-size: 8px' value='Route to Here' onclick='route_to_new_pos(" + latlng.lat + ", " + latlng.lng + ")' />")
 						.openOn(map);
-				});
+				});*/
 				
 				$(".msDropDown").msDropDown({height: 100});
 				
